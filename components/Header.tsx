@@ -17,7 +17,7 @@ export default function Header() {
           <Link href="/salidas" className="hover:opacity-80 transition">Salidas Grupales</Link>
           <Link href="/arma-tu-viaje" className="hover:opacity-80 transition">Armá tu Viaje</Link>
           <a href="mailto:adm@viajaconeuforia.com" className="hover:opacity-80 transition">Contacto</a>
-          <a href="https://wa.me/542804000000" target="_blank"
+          <a href="https://wa.me/542804321400" target="_blank"
             className="bg-white text-[#00AEEF] px-4 py-1.5 rounded-full font-bold hover:bg-[#E0F6FF] transition text-xs">
             WhatsApp
           </a>

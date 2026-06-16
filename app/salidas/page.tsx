@@ -100,7 +100,7 @@ export default function SalidasPage() {
                     style={{ backgroundColor: '#00AEEF' }}>
                     Ver detalle
                   </Link>
-                  <a href={`https://wa.me/542804000000?text=Hola%2C%20me%20interesa%20el%20paquete%3A%20${encodeURIComponent(p.titulo)}`}
+                  <a href={`https://wa.me/542804321400?text=Hola%2C%20me%20interesa%20el%20paquete%3A%20${encodeURIComponent(p.titulo)}`}
                     target="_blank"
                     className="px-3 py-2.5 rounded-xl text-sm font-bold bg-[#25D366] text-white flex items-center">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
