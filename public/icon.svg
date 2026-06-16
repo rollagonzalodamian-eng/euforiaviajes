@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="80" fill="#4A6CB3"/>
+  <!-- EUFORIA text -->
+  <text x="256" y="230" font-family="Georgia, serif" font-size="88" font-weight="bold" fill="white" text-anchor="middle" letter-spacing="8">EUF</text>
+  <!-- Flame replacing O -->
+  <g transform="translate(256,185)">
+    <!-- flame shape -->
+    <path d="M0,-55 C15,-35 25,-10 20,15 C15,35 5,45 0,55 C-5,45 -15,35 -20,15 C-25,-10 -15,-35 0,-55 Z" fill="white" opacity="0.95"/>
+    <path d="M0,-20 C8,-8 12,5 8,18 C5,28 0,35 0,35 C0,35 -5,28 -8,18 C-12,5 -8,-8 0,-20 Z" fill="#4A6CB3"/>
+  </g>
+  <text x="256" y="230" font-family="Georgia, serif" font-size="88" font-weight="bold" fill="white" text-anchor="middle" letter-spacing="8">   RIA</text>
+  <!-- VIAJES -->
+  <text x="256" y="310" font-family="Arial, sans-serif" font-size="52" font-weight="300" fill="white" text-anchor="middle" letter-spacing="18">VIAJES</text>
+</svg>
