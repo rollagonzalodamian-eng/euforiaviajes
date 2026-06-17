@@ -7,12 +7,22 @@ import WhatsAppButton from "@/components/WhatsAppButton";
 const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Euforia Viajes - Paquetes y Destinos",
-  description: "Encontrá los mejores paquetes de viaje nacionales e internacionales con Euforia Viajes.",
+  title: "Euforia Viajes - Paquetes de Viaje Nacionales e Internacionales",
+  description: "Descubrí paquetes de viaje a Termas de Río Hondo, Brasil, Cancún, Bariloche y más. Salidas grupales y viajes a medida desde Patagonia. ¡Reservá online!",
   manifest: "/manifest.json",
   icons: {
     icon: "/icon.png",
     apple: "/icon.png",
+  },
+  keywords: ["paquetes de viaje", "turismo argentina", "salidas grupales", "euforia viajes", "viajes patagonia", "termas rio hondo", "cancun", "brasil"],
+  openGraph: {
+    title: "Euforia Viajes - Paquetes Nacionales e Internacionales",
+    description: "Los mejores paquetes de viaje con salida desde Patagonia. Reservá online con seña del 15%.",
+    url: "https://euforiaviajes.vercel.app",
+    siteName: "Euforia Viajes",
+    images: [{ url: "/icon.png", width: 512, height: 512 }],
+    locale: "es_AR",
+    type: "website",
   },
 };
 

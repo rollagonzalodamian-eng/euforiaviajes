@@ -28,7 +28,10 @@ const paquetes = paquetesData as unknown as Paquete[]
 export default function AdminPage() {
   const [pass, setPass] = useState('')
   const [autenticado, setAutenticado] = useState(false)
-  const [tab, setTab] = useState<'fotos' | 'reservas' | 'stats'>('stats')
+  const [tab, setTab] = useState<'fotos' | 'reservas' | 'stats' | 'config'>('stats')
+  const [config, setConfig] = useState({ senaPorc: 15, tipoCambio: 1050, whatsapp: '542804321400', emailAdmin: 'adm@viajaconeuforia.com' })
+  const [guardandoConfig, setGuardandoConfig] = useState(false)
+  const [mensajeConfig, setMensajeConfig] = useState('')
   const [fotos, setFotos] = useState<Record<string, string>>({})
   const [reservas, setReservas] = useState<Reserva[]>([])
   const [busqueda, setBusqueda] = useState('')
@@ -54,6 +57,17 @@ export default function AdminPage() {
   async function cargarReservas() {
     const res = await fetch('/api/admin/reservas')
     if (res.ok) setReservas(await res.json())
+  }
+
+  async function guardarConfig() {
+    setGuardandoConfig(true)
+    const res = await fetch('/api/admin/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pass, ...config }),
+    })
+    if (res.ok) { setMensajeConfig('Configuración guardada'); setTimeout(() => setMensajeConfig(''), 3000) }
+    setGuardandoConfig(false)
   }
 
   async function guardarFoto(id: string) {
@@ -133,7 +147,7 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="flex border-b bg-white">
-        {([['stats', 'Resumen'], ['fotos', 'Fotos'], ['reservas', 'Pre-Reservas']] as const).map(([key, label]) => (
+        {([['stats', 'Resumen'], ['fotos', 'Fotos'], ['reservas', 'Pre-Reservas'], ['config', 'Config']] as const).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
@@ -266,6 +280,52 @@ export default function AdminPage() {
                   </div>
                 )
               })}
+            </div>
+          </div>
+        )}
+
+        {/* CONFIG */}
+        {tab === 'config' && (
+          <div>
+            <h2 className="text-lg font-bold text-gray-800 mb-4">Configuración</h2>
+            {mensajeConfig && <div className="mb-4 bg-green-100 text-green-700 px-4 py-3 rounded-lg text-sm">✓ {mensajeConfig}</div>}
+            <div className="bg-white rounded-xl shadow-sm border p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">% de seña (actualmente {config.senaPorc}%)</label>
+                <input type="number" min={5} max={50} value={config.senaPorc}
+                  onChange={e => setConfig(c => ({ ...c, senaPorc: parseInt(e.target.value) }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00AEEF]" />
+                <p className="text-xs text-gray-400 mt-1">Porcentaje que paga el cliente como seña por Mercado Pago</p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Tipo de cambio USD → ARS</label>
+                <input type="number" value={config.tipoCambio}
+                  onChange={e => setConfig(c => ({ ...c, tipoCambio: parseInt(e.target.value) }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00AEEF]" />
+                <p className="text-xs text-gray-400 mt-1">Se usa para mostrar precios en pesos en la app</p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">WhatsApp de contacto</label>
+                <input type="text" value={config.whatsapp}
+                  onChange={e => setConfig(c => ({ ...c, whatsapp: e.target.value }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00AEEF]" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Email administrativo</label>
+                <input type="email" value={config.emailAdmin}
+                  onChange={e => setConfig(c => ({ ...c, emailAdmin: e.target.value }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00AEEF]" />
+              </div>
+              <div className="pt-2 border-t">
+                <p className="text-xs font-semibold text-gray-500 mb-2">Mercado Pago</p>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-700">
+                  Para activar pagos online, agregá la variable <code className="bg-yellow-100 px-1 rounded">MP_ACCESS_TOKEN</code> en Vercel → Settings → Environment Variables con tu Access Token de Mercado Pago.
+                </div>
+              </div>
+              <button onClick={guardarConfig} disabled={guardandoConfig}
+                className="w-full bg-[#00AEEF] text-white py-3 rounded-lg font-semibold disabled:opacity-50">
+                {guardandoConfig ? 'Guardando...' : 'Guardar configuración'}
+              </button>
             </div>
           </div>
         )}

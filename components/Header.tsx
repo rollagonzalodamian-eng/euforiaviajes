@@ -16,7 +16,8 @@ export default function Header() {
           <Link href="/" className="hover:opacity-80 transition">Inicio</Link>
           <Link href="/salidas" className="hover:opacity-80 transition">Salidas Grupales</Link>
           <Link href="/arma-tu-viaje" className="hover:opacity-80 transition">Armá tu Viaje</Link>
-          <a href="mailto:adm@viajaconeuforia.com" className="hover:opacity-80 transition">Contacto</a>
+          <Link href="/contacto" className="hover:opacity-80 transition">Contacto</Link>
+          <Link href="/mi-cuenta" className="hover:opacity-80 transition">Mi cuenta</Link>
           <a href="https://wa.me/542804321400" target="_blank"
             className="bg-white text-[#00AEEF] px-4 py-1.5 rounded-full font-bold hover:bg-[#E0F6FF] transition text-xs">
             WhatsApp
@@ -37,7 +38,8 @@ export default function Header() {
           <Link href="/" onClick={() => setOpen(false)}>Inicio</Link>
           <Link href="/salidas" onClick={() => setOpen(false)}>Salidas Grupales</Link>
           <Link href="/arma-tu-viaje" onClick={() => setOpen(false)}>Armá tu Viaje</Link>
-          <a href="mailto:adm@viajaconeuforia.com">Contacto</a>
+          <Link href="/contacto" onClick={() => setOpen(false)}>Contacto</Link>
+          <Link href="/mi-cuenta" onClick={() => setOpen(false)}>Mi cuenta</Link>
         </div>
       )}
     </header>

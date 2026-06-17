@@ -14,6 +14,8 @@ export default function Home() {
   const [categoria, setCategoria] = useState('Todos')
   const [transporte, setTransporte] = useState('Todos')
   const [ordenPrecio, setOrdenPrecio] = useState('')
+  const [moneda, setMoneda] = useState<'USD' | 'ARS'>('USD')
+  const TC = 1050
 
   const filtrados = useMemo(() => {
     let r = paquetes.filter(p => {
@@ -28,8 +30,8 @@ export default function Home() {
     })
     if (ordenPrecio) {
       r = [...r].sort((a, b) => {
-        const pa = parseFloat(a.precioUSD) || 0
-        const pb = parseFloat(b.precioUSD) || 0
+        const pa = parseFloat(a.precioUSD) || parseFloat(a.precioARS) / TC || 0
+        const pb = parseFloat(b.precioUSD) || parseFloat(b.precioARS) / TC || 0
         return ordenPrecio === 'asc' ? pa - pb : pb - pa
       })
     }
@@ -116,6 +118,11 @@ export default function Home() {
                 <option value="asc">↑ Menor precio</option>
                 <option value="desc">↓ Mayor precio</option>
               </select>
+              <button onClick={() => setMoneda(m => m === 'USD' ? 'ARS' : 'USD')}
+                className="px-3 py-1.5 rounded-full text-xs font-bold border transition"
+                style={{ backgroundColor: '#f0fafe', color: '#00AEEF', borderColor: '#00AEEF' }}>
+                {moneda === 'USD' ? '💵 USD' : '🇦🇷 ARS'}
+              </button>
             </div>
           </div>
           <p className="text-xs text-gray-400 mt-2">{filtrados.length} paquete{filtrados.length !== 1 ? 's' : ''} encontrado{filtrados.length !== 1 ? 's' : ''}</p>
@@ -141,11 +148,15 @@ export default function Home() {
                 <p className="text-gray-500 text-xs mt-2 line-clamp-3 flex-1">{p.descripcion}</p>
                 <div className="mt-3 flex items-end justify-between">
                   <div>
-                    {p.precioUSD
-                      ? <p className="font-extrabold text-lg" style={{ color: '#00AEEF' }}>USD {parseFloat(p.precioUSD).toLocaleString()}</p>
-                      : p.precioARS
-                        ? <p className="font-extrabold text-base" style={{ color: '#00AEEF' }}>$ {parseInt(p.precioARS).toLocaleString('es-AR')}</p>
-                        : null}
+                    {p.precioUSD ? (
+                      moneda === 'ARS'
+                        ? <p className="font-extrabold text-lg" style={{ color: '#00AEEF' }}>$ {Math.round(parseFloat(p.precioUSD) * TC).toLocaleString('es-AR')}</p>
+                        : <p className="font-extrabold text-lg" style={{ color: '#00AEEF' }}>USD {parseFloat(p.precioUSD).toLocaleString()}</p>
+                    ) : p.precioARS ? (
+                      moneda === 'USD'
+                        ? <p className="font-extrabold text-base" style={{ color: '#00AEEF' }}>USD {Math.round(parseInt(p.precioARS) / TC).toLocaleString()}</p>
+                        : <p className="font-extrabold text-base" style={{ color: '#00AEEF' }}>$ {parseInt(p.precioARS).toLocaleString('es-AR')}</p>
+                    ) : null}
                     {p.noches && <p className="text-xs text-gray-400">{p.noches} noches · desde {p.origen}</p>}
                   </div>
                   <span className="text-white text-xs font-bold px-3 py-1.5 rounded-xl" style={{ backgroundColor: '#00AEEF' }}>

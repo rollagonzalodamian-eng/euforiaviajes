@@ -4,14 +4,22 @@ import { getPaquete, emojiDestino } from '@/lib/paquetes'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
+const SENA_PORC = 15
+const TC = 1050
+
 export default function PaquetePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const p = getPaquete(id)
   const router = useRouter()
   const [form, setForm] = useState({ nombre: '', email: '', telefono: '', cantPasajeros: '1', fechaDeseada: '', mensaje: '' })
   const [estado, setEstado] = useState<'idle' | 'enviando' | 'ok' | 'error'>('idle')
+  const [pagoEstado, setPagoEstado] = useState<'idle' | 'cargando'>('idle')
 
   if (!p) return <div className="p-8 text-center">Paquete no encontrado. <Link href="/" className="text-[#00AEEF] underline">Volver</Link></div>
+
+  const precioNum = parseFloat(p.precioUSD) || parseInt(p.precioARS) / TC || 0
+  const precioARS = parseFloat(p.precioUSD) ? parseFloat(p.precioUSD) * TC : parseInt(p.precioARS) || 0
+  const senaARS = Math.round(precioARS * parseInt(form.cantPasajeros) * SENA_PORC / 100)
 
   const enviar = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,7 +29,32 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...form, paqueteId: p.id, paqueteTitulo: p.titulo }),
     })
-    setEstado(res.ok ? 'ok' : 'error')
+    if (res.ok) router.push('/confirmacion')
+    else setEstado('error')
+  }
+
+  const pagarSena = async () => {
+    if (!form.nombre || !form.email) {
+      alert('Completá tu nombre y email primero.')
+      return
+    }
+    setPagoEstado('cargando')
+    const res = await fetch('/api/pago', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        paqueteId: p.id,
+        paqueteTitulo: p.titulo,
+        precioUSD: precioNum,
+        cantPasajeros: parseInt(form.cantPasajeros),
+        nombre: form.nombre,
+        email: form.email,
+      }),
+    })
+    const data = await res.json()
+    setPagoEstado('idle')
+    if (data.init_point) window.location.href = data.init_point
+    else alert('Mercado Pago no está activado aún. Contactanos por WhatsApp.')
   }
 
   return (
@@ -69,14 +102,13 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
             <h2 className="font-bold text-gray-800 text-lg mb-1">📋 Pre-reservar</h2>
             <p className="text-xs text-gray-400 mb-4">Completá el formulario y nos comunicamos con vos para confirmar.</p>
 
-            {estado === 'ok' ? (
-              <div className="text-center py-6">
-                <p className="text-4xl mb-2">✅</p>
-                <p className="font-bold text-gray-700">¡Solicitud enviada!</p>
-                <p className="text-xs text-gray-400 mt-1">Te contactamos a la brevedad.</p>
-                <Link href="/" className="mt-4 inline-block text-sm underline" style={{ color: '#00AEEF' }}>Ver más paquetes</Link>
+            {senaARS > 0 && (
+              <div className="bg-[#E0F6FF] rounded-xl p-3 mb-4 text-sm">
+                <p className="font-bold text-[#0090C5]">Seña {SENA_PORC}%: <span className="text-[#00AEEF]">$ {senaARS.toLocaleString('es-AR')}</span></p>
+                <p className="text-xs text-[#0090C5] mt-0.5">por {form.cantPasajeros} pasajero{parseInt(form.cantPasajeros) > 1 ? 's' : ''} · abonás ahora y el resto al viajar</p>
               </div>
-            ) : (
+            )}
+            {estado === 'ok' ? null : (
               <form onSubmit={enviar} className="space-y-3">
                 {[
                   { name: 'nombre', label: 'Nombre completo', type: 'text', required: true },
@@ -112,8 +144,14 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
                 <button type="submit" disabled={estado === 'enviando'}
                   className="w-full text-white font-bold py-3 rounded-xl transition disabled:opacity-60"
                   style={{ backgroundColor: '#00AEEF' }}>
-                  {estado === 'enviando' ? 'Enviando...' : '¡Quiero este paquete!'}
+                  {estado === 'enviando' ? 'Enviando...' : '📋 Consultar sin compromiso'}
                 </button>
+                {senaARS > 0 && (
+                  <button type="button" onClick={pagarSena} disabled={pagoEstado === 'cargando'}
+                    className="w-full bg-[#009ee3] text-white font-bold py-3 rounded-xl transition disabled:opacity-60 flex items-center justify-center gap-2">
+                    {pagoEstado === 'cargando' ? 'Redirigiendo...' : `💳 Pagar seña $ ${senaARS.toLocaleString('es-AR')} con Mercado Pago`}
+                  </button>
+                )}
                 <p className="text-[10px] text-gray-400 text-center">Sin compromiso · Te contactamos en menos de 24hs</p>
               </form>
             )}
