@@ -8,7 +8,7 @@ type Paquete = {
   titulo: string
   categoria: string
   destino: string
-  precioUSD: number
+  precioUSD: string | number
   foto: string
   disponible: boolean
 }
@@ -23,7 +23,7 @@ type Reserva = {
   fecha: string
 }
 
-const paquetes = paquetesData as Paquete[]
+const paquetes = paquetesData as unknown as Paquete[]
 
 export default function AdminPage() {
   const [pass, setPass] = useState('')
