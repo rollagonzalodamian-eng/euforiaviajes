@@ -5,11 +5,11 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 async function guardarEnKV(data: object) {
   try {
-    const { kv } = await import('@vercel/kv')
+    const { redis } = await import('@/lib/redis')
     const reserva = { ...data, fecha: new Date().toISOString() }
-    await kv.lpush('reservas', reserva)
+    await redis.lpush('reservas', reserva)
   } catch {
-    // KV no configurado aún, ignorar
+    // Redis no configurado aún, ignorar
   }
 }
 

@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { kv } from '@vercel/kv'
+import { redis } from '@/lib/redis'
 
 export async function GET() {
   try {
-    const reservas = await kv.lrange<any>('reservas', 0, -1) || []
+    const reservas = await redis.lrange<any>('reservas', 0, -1) || []
     return NextResponse.json(reservas)
   } catch {
     return NextResponse.json([])
