@@ -228,8 +228,8 @@ export default function AdminPage() {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-800 text-sm truncate">{p.titulo}</p>
                         <p className="text-xs text-gray-500">{p.categoria} · {p.destino}</p>
-                        {p.precioUSD > 0 && (
-                          <p className="text-xs text-[#00AEEF] font-semibold">USD {p.precioUSD.toLocaleString()}</p>
+                        {Number(p.precioUSD) > 0 && (
+                          <p className="text-xs text-[#00AEEF] font-semibold">USD {Number(p.precioUSD).toLocaleString()}</p>
                         )}
                       </div>
                       <button
