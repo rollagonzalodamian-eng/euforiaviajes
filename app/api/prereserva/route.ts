@@ -3,8 +3,20 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+async function guardarEnKV(data: object) {
+  try {
+    const { kv } = await import('@vercel/kv')
+    const reserva = { ...data, fecha: new Date().toISOString() }
+    await kv.lpush('reservas', reserva)
+  } catch {
+    // KV no configurado aún, ignorar
+  }
+}
+
 export async function POST(req: NextRequest) {
-  const { nombre, email, telefono, cantPasajeros, fechaDeseada, mensaje, paqueteTitulo } = await req.json()
+  const { nombre, email, telefono, cantPasajeros, fechaDeseada, mensaje, paqueteTitulo, paqueteId } = await req.json()
+
+  await guardarEnKV({ nombre, email, telefono, cantPasajeros, fechaDeseada, mensaje, paqueteTitulo, paqueteId })
 
   try {
     await resend.emails.send({
