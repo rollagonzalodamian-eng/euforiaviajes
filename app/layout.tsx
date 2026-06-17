@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import { Analytics } from "@vercel/analytics/next";
 
 const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Header />
         {children}
         <WhatsAppButton />
+        <Analytics />
       </body>
     </html>
   );
