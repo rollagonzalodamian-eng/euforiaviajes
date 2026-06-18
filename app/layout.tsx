@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import SessionWrapper from "@/components/SessionWrapper";
+import Analytics from "@/components/Analytics";
 
 const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es" className={`${geist.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-[#f5f9fd]">
         <SessionWrapper>
+          <Analytics />
           <Header />
           {children}
           <WhatsAppButton />
