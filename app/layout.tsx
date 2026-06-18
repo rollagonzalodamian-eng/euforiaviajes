@@ -15,6 +15,7 @@ export const metadata: Metadata = {
     icon: "/icon.png",
     apple: "/icon.png",
   },
+  verification: { google: 'bhnWH8_jpOgDRWkVT37jl7aZsyiIXUK-EhfKjrqOvkk' },
   keywords: ["paquetes de viaje", "turismo argentina", "salidas grupales", "euforia viajes", "viajes patagonia", "termas rio hondo", "cancun", "brasil"],
   openGraph: {
     title: "Euforia Viajes - Paquetes Nacionales e Internacionales",
