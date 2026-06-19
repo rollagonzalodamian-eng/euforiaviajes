@@ -4,6 +4,7 @@ import { getPaquete, emojiDestino } from '@/lib/paquetes'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import PaquetesSimilares from '@/components/PaquetesSimilares'
+import GaleriaFotos from '@/components/GaleriaFotos'
 
 const SENA_PORC = 15
 const TC = 1050
@@ -102,9 +103,7 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
         {/* DETALLE */}
         <div className="md:col-span-2 space-y-4">
           <div className="bg-white rounded-2xl shadow overflow-hidden">
-            <div className="h-64 overflow-hidden">
-              <img src={p.foto} alt={p.titulo} className="w-full h-full object-cover" />
-            </div>
+            <GaleriaFotos paqueteId={p.id} fotoPortada={p.foto} />
             <div className="p-6">
               <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#00AEEF' }}>{p.categoria} · {p.transporte}</span>
               <h1 className="text-2xl font-black text-gray-800 mt-1">{p.titulo}</h1>

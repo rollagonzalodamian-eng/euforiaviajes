@@ -41,6 +41,10 @@ export default function AdminPage() {
   const [nuevoCupon, setNuevoCupon] = useState({ codigo: '', descuento: 10, tipo: 'porcentaje', activo: true, maxUsos: 100 })
   const [guardandoCupon, setGuardandoCupon] = useState(false)
   const [fotos, setFotos] = useState<Record<string, string>>({})
+  const [galerias, setGalerias] = useState<Record<string, string[]>>({})
+  const [editandoGaleria, setEditandoGaleria] = useState<string | null>(null)
+  const [urlsGaleria, setUrlsGaleria] = useState('')
+  const [guardandoGaleria, setGuardandoGaleria] = useState(false)
   const [reservas, setReservas] = useState<Reserva[]>([])
   const [busqueda, setBusqueda] = useState('')
   const [editando, setEditando] = useState<string | null>(null)
@@ -146,6 +150,30 @@ export default function AdminPage() {
     })
     if (res.ok) { setMensajeConfig('Configuración guardada'); setTimeout(() => setMensajeConfig(''), 3000) }
     setGuardandoConfig(false)
+  }
+
+  async function cargarGaleria(id: string) {
+    const res = await fetch(`/api/admin/galeria?id=${id}`)
+    if (res.ok) {
+      const data = await res.json()
+      setGalerias(g => ({ ...g, [id]: data }))
+      setUrlsGaleria(data.join('\n'))
+    }
+  }
+
+  async function guardarGaleria(id: string) {
+    setGuardandoGaleria(true)
+    const fotos = urlsGaleria.split('\n').map((u: string) => u.trim()).filter(Boolean)
+    await fetch('/api/admin/galeria', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pass, id, fotos }),
+    })
+    setGalerias(g => ({ ...g, [id]: fotos }))
+    setGuardandoGaleria(false)
+    setEditandoGaleria(null)
+    setMensaje('Galería guardada')
+    setTimeout(() => setMensaje(''), 3000)
   }
 
   async function guardarFoto(id: string) {
@@ -338,7 +366,7 @@ export default function AdminPage() {
                       <div className="px-3 pb-3 border-t pt-3 bg-blue-50">
                         <input
                           type="url"
-                          placeholder="https://... URL de la foto"
+                          placeholder="https://... URL de la foto portada"
                           value={nuevaUrl}
                           onChange={e => setNuevaUrl(e.target.value)}
                           className="w-full border rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-[#00AEEF]"
@@ -349,10 +377,45 @@ export default function AdminPage() {
                         <button
                           onClick={() => guardarFoto(p.id)}
                           disabled={guardando || !nuevaUrl}
-                          className="w-full bg-[#00AEEF] text-white py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
+                          className="w-full bg-[#00AEEF] text-white py-2 rounded-lg text-sm font-semibold disabled:opacity-50 mb-3"
                         >
-                          {guardando ? 'Guardando...' : 'Guardar foto'}
+                          {guardando ? 'Guardando...' : 'Guardar foto portada'}
                         </button>
+
+                        {/* Galería múltiple */}
+                        <div className="border-t pt-3">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-xs font-semibold text-gray-600">📸 Galería de fotos ({galerias[p.id]?.length || 0} fotos)</p>
+                            <button
+                              onClick={() => {
+                                if (editandoGaleria === p.id) { setEditandoGaleria(null) }
+                                else { setEditandoGaleria(p.id); cargarGaleria(p.id) }
+                              }}
+                              className="text-xs text-[#00AEEF] underline"
+                            >
+                              {editandoGaleria === p.id ? 'Cerrar' : 'Editar galería'}
+                            </button>
+                          </div>
+                          {editandoGaleria === p.id && (
+                            <div>
+                              <p className="text-xs text-gray-400 mb-1">Una URL por línea</p>
+                              <textarea
+                                rows={4}
+                                value={urlsGaleria}
+                                onChange={e => setUrlsGaleria(e.target.value)}
+                                placeholder={"https://foto1.jpg\nhttps://foto2.jpg\nhttps://foto3.jpg"}
+                                className="w-full border rounded-lg px-3 py-2 text-xs mb-2 focus:outline-none focus:ring-2 focus:ring-[#00AEEF] resize-none font-mono"
+                              />
+                              <button
+                                onClick={() => guardarGaleria(p.id)}
+                                disabled={guardandoGaleria}
+                                className="w-full bg-green-600 text-white py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
+                              >
+                                {guardandoGaleria ? 'Guardando...' : 'Guardar galería'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -577,12 +640,30 @@ export default function AdminPage() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-800">Pre-Reservas</h2>
-              <button
-                onClick={cargarReservas}
-                className="text-[#00AEEF] text-sm font-medium"
-              >
-                Actualizar
-              </button>
+              <div className="flex gap-3">
+                <button onClick={cargarReservas} className="text-[#00AEEF] text-sm font-medium">Actualizar</button>
+                {reservas.length > 0 && (
+                  <button
+                    onClick={() => {
+                      const headers = ['Nombre', 'Email', 'Teléfono', 'Pasajeros', 'Fecha deseada', 'Paquete', 'Fecha consulta', 'Mensaje']
+                      const rows = reservas.map((r: any) => [
+                        r.nombre, r.email, r.telefono, r.cantPasajeros,
+                        r.fechaDeseada || '', r.paqueteTitulo,
+                        r.fecha ? new Date(r.fecha).toLocaleDateString('es-AR') : '',
+                        (r.mensaje || '').replace(/,/g, ' ')
+                      ])
+                      const csv = [headers, ...rows].map(r => r.join(',')).join('\n')
+                      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+                      const url = URL.createObjectURL(blob)
+                      const a = document.createElement('a')
+                      a.href = url; a.download = 'reservas-euforia.csv'; a.click()
+                    }}
+                    className="bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg"
+                  >
+                    📥 Exportar Excel
+                  </button>
+                )}
+              </div>
             </div>
             {reservas.length === 0 ? (
               <div className="text-center py-12 text-gray-400">
