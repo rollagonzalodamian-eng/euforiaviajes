@@ -7,13 +7,11 @@ declare global {
 
 export default function TawkChat() {
   useEffect(() => {
-    const tawkId = process.env.NEXT_PUBLIC_TAWK_ID
-    if (!tawkId) return
     window.Tawk_API = window.Tawk_API || {}
     window.Tawk_LoadStart = new Date()
     const s = document.createElement('script')
     s.async = true
-    s.src = `https://embed.tawk.to/${tawkId}/default`
+    s.src = `https://embed.tawk.to/6a34930fb1bc7b1d4bd8d40b/1jrelsubs`
     s.charset = 'UTF-8'
     s.setAttribute('crossorigin', '*')
     document.body.appendChild(s)
