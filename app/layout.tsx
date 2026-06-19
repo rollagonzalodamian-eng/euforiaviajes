@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import SessionWrapper from "@/components/SessionWrapper";
 import Analytics from "@/components/Analytics";
+import BannerOferta from "@/components/BannerOferta";
 
 const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SessionWrapper>
           <Analytics />
           <Header />
+          <BannerOferta />
           {children}
           <WhatsAppButton />
         </SessionWrapper>

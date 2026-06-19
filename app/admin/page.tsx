@@ -28,13 +28,18 @@ const paquetes = paquetesData as unknown as Paquete[]
 export default function AdminPage() {
   const [pass, setPass] = useState('')
   const [autenticado, setAutenticado] = useState(false)
-  const [tab, setTab] = useState<'fotos' | 'reservas' | 'stats' | 'config' | 'resenas'>('stats')
+  const [tab, setTab] = useState<'fotos' | 'reservas' | 'stats' | 'config' | 'resenas' | 'cupones'>('stats')
   const [resenas, setResenas] = useState<any[]>([])
   const [nuevaResena, setNuevaResena] = useState({ nombre: '', ciudad: '', destino: '', texto: '', estrellas: 5, fecha: '' })
   const [guardandoResena, setGuardandoResena] = useState(false)
   const [config, setConfig] = useState({ senaPorc: 15, tipoCambio: 1050, whatsapp: '542804321400', emailAdmin: 'adm@viajaconeuforia.com' })
   const [guardandoConfig, setGuardandoConfig] = useState(false)
   const [mensajeConfig, setMensajeConfig] = useState('')
+  const [oferta, setOferta] = useState({ activo: false, titulo: '', descripcion: '', linkId: '', fechaFin: '' })
+  const [guardandoOferta, setGuardandoOferta] = useState(false)
+  const [cupones, setCupones] = useState<any[]>([])
+  const [nuevoCupon, setNuevoCupon] = useState({ codigo: '', descuento: 10, tipo: 'porcentaje', activo: true, maxUsos: 100 })
+  const [guardandoCupon, setGuardandoCupon] = useState(false)
   const [fotos, setFotos] = useState<Record<string, string>>({})
   const [reservas, setReservas] = useState<Reserva[]>([])
   const [busqueda, setBusqueda] = useState('')
@@ -52,6 +57,7 @@ export default function AdminPage() {
       setAutenticado(true)
       setError('')
       cargarReservas()
+      cargarCupones()
     } else {
       setError('Contraseña incorrecta')
     }
@@ -86,6 +92,49 @@ export default function AdminPage() {
       body: JSON.stringify({ pass, accion: 'eliminar', resena: { id } }),
     })
     await cargarResenas()
+  }
+
+  async function cargarOferta() {
+    const res = await fetch('/api/admin/oferta')
+    if (res.ok) setOferta(await res.json())
+  }
+
+  async function guardarOferta() {
+    setGuardandoOferta(true)
+    await fetch('/api/admin/oferta', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pass, ...oferta }),
+    })
+    setGuardandoOferta(false)
+    setMensaje('Banner guardado')
+    setTimeout(() => setMensaje(''), 3000)
+  }
+
+  async function cargarCupones() {
+    const res = await fetch('/api/admin/cupones')
+    if (res.ok) setCupones(await res.json())
+  }
+
+  async function agregarCupon() {
+    setGuardandoCupon(true)
+    await fetch('/api/admin/cupones', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pass, accion: 'agregar', cupon: nuevoCupon }),
+    })
+    setNuevoCupon({ codigo: '', descuento: 10, tipo: 'porcentaje', activo: true, maxUsos: 100 })
+    await cargarCupones()
+    setGuardandoCupon(false)
+  }
+
+  async function eliminarCupon(codigo: string) {
+    await fetch('/api/admin/cupones', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pass, accion: 'eliminar', cupon: { codigo } }),
+    })
+    await cargarCupones()
   }
 
   async function guardarConfig() {
@@ -176,7 +225,7 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="flex border-b bg-white">
-        {([['stats', 'Resumen'], ['fotos', 'Fotos'], ['reservas', 'Reservas'], ['resenas', 'Reseñas'], ['config', 'Config']] as const).map(([key, label]) => (
+        {([['stats', 'Resumen'], ['fotos', 'Fotos'], ['reservas', 'Reservas'], ['resenas', 'Reseñas'], ['cupones', 'Cupones'], ['config', 'Config']] as const).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
@@ -313,6 +362,41 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* BANNER OFERTA */}
+        {tab === 'config' && (
+          <div className="bg-white rounded-xl shadow-sm border p-5 space-y-4 mb-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-gray-700">🔥 Banner de oferta</h3>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <span className="text-sm text-gray-500">{oferta.activo ? 'Activo' : 'Inactivo'}</span>
+                <div onClick={() => setOferta(o => ({ ...o, activo: !o.activo }))}
+                  className={`w-10 h-6 rounded-full transition ${oferta.activo ? 'bg-[#00AEEF]' : 'bg-gray-300'} relative`}>
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${oferta.activo ? 'left-5' : 'left-1'}`} />
+                </div>
+              </label>
+            </div>
+            <input placeholder="Título (ej: ¡PROMO INVIERNO! 20% OFF en Termas)"
+              value={oferta.titulo} onChange={e => setOferta(o => ({ ...o, titulo: e.target.value }))}
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00AEEF]" />
+            <input placeholder="Descripción corta (opcional)"
+              value={oferta.descripcion} onChange={e => setOferta(o => ({ ...o, descripcion: e.target.value }))}
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00AEEF]" />
+            <input placeholder="ID del paquete en oferta (opcional)"
+              value={oferta.linkId} onChange={e => setOferta(o => ({ ...o, linkId: e.target.value }))}
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00AEEF]" />
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Fecha y hora de vencimiento</label>
+              <input type="datetime-local" value={oferta.fechaFin}
+                onChange={e => setOferta(o => ({ ...o, fechaFin: e.target.value }))}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00AEEF]" />
+            </div>
+            <button onClick={guardarOferta} disabled={guardandoOferta}
+              className="w-full bg-red-500 text-white py-2 rounded-lg font-semibold text-sm disabled:opacity-50">
+              {guardandoOferta ? 'Guardando...' : 'Guardar banner'}
+            </button>
+          </div>
+        )}
+
         {/* RESEÑAS */}
         {tab === 'resenas' && (
           <div>
@@ -375,6 +459,67 @@ export default function AdminPage() {
                     <p className="text-sm text-gray-600">"{r.texto}"</p>
                   </div>
                   <button onClick={() => eliminarResena(r.id)} className="text-red-400 hover:text-red-600 text-sm shrink-0">✕</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* CUPONES */}
+        {tab === 'cupones' && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-800">Cupones de descuento</h2>
+              <button onClick={cargarCupones} className="text-sm text-[#00AEEF] underline">Actualizar</button>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border p-5 mb-5">
+              <h3 className="font-semibold text-gray-700 mb-3">Nuevo cupón</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Código</label>
+                  <input type="text" placeholder="VERANO10" value={nuevoCupon.codigo}
+                    onChange={e => setNuevoCupon(c => ({ ...c, codigo: e.target.value.toUpperCase() }))}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#00AEEF] uppercase" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Descuento</label>
+                  <input type="number" value={nuevoCupon.descuento}
+                    onChange={e => setNuevoCupon(c => ({ ...c, descuento: Number(e.target.value) }))}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#00AEEF]" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Tipo</label>
+                  <select value={nuevoCupon.tipo} onChange={e => setNuevoCupon(c => ({ ...c, tipo: e.target.value as any }))}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#00AEEF]">
+                    <option value="porcentaje">% descuento</option>
+                    <option value="fijo">USD fijo</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Máx. usos</label>
+                  <input type="number" value={nuevoCupon.maxUsos}
+                    onChange={e => setNuevoCupon(c => ({ ...c, maxUsos: Number(e.target.value) }))}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#00AEEF]" />
+                </div>
+              </div>
+              <button onClick={agregarCupon} disabled={guardandoCupon || !nuevoCupon.codigo}
+                className="mt-4 bg-[#00AEEF] text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-60">
+                {guardandoCupon ? 'Guardando...' : '+ Crear cupón'}
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {cupones.length === 0 && <p className="text-gray-400 text-sm text-center py-8">No hay cupones creados</p>}
+              {cupones.map((c: any) => (
+                <div key={c.codigo} className="bg-white rounded-xl shadow-sm border p-4 flex items-center justify-between">
+                  <div>
+                    <span className="font-bold text-[#00AEEF] text-lg font-mono">{c.codigo}</span>
+                    <p className="text-sm text-gray-600 mt-0.5">
+                      {c.tipo === 'porcentaje' ? `${c.descuento}% off` : `USD ${c.descuento} off`} · {c.usos}/{c.maxUsos} usos · {c.activo ? '✅ Activo' : '❌ Inactivo'}
+                    </p>
+                  </div>
+                  <button onClick={() => eliminarCupon(c.codigo)} className="text-red-400 hover:text-red-600 text-sm">✕ Eliminar</button>
                 </div>
               ))}
             </div>

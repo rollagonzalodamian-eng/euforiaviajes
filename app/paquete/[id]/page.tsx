@@ -3,6 +3,7 @@ import { use, useState } from 'react'
 import { getPaquete, emojiDestino } from '@/lib/paquetes'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import PaquetesSimilares from '@/components/PaquetesSimilares'
 
 const SENA_PORC = 15
 const TC = 1050
@@ -14,12 +15,35 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
   const [form, setForm] = useState({ nombre: '', email: '', telefono: '', cantPasajeros: '1', fechaDeseada: '', mensaje: '' })
   const [estado, setEstado] = useState<'idle' | 'enviando' | 'ok' | 'error'>('idle')
   const [pagoEstado, setPagoEstado] = useState<'idle' | 'cargando'>('idle')
+  const [cupon, setCupon] = useState('')
+  const [descuentoUSD, setDescuentoUSD] = useState(0)
+  const [cuponEstado, setCuponEstado] = useState<'idle' | 'ok' | 'error'>('idle')
+  const [cuponMsg, setCuponMsg] = useState('')
 
   if (!p) return <div className="p-8 text-center">Paquete no encontrado. <Link href="/" className="text-[#00AEEF] underline">Volver</Link></div>
 
-  const precioNum = parseFloat(p.precioUSD) || parseInt(p.precioARS) / TC || 0
-  const precioARS = parseFloat(p.precioUSD) ? parseFloat(p.precioUSD) * TC : parseInt(p.precioARS) || 0
+  const precioNum = Math.max(0, (parseFloat(p.precioUSD) || parseInt(p.precioARS) / TC || 0) - descuentoUSD)
+  const precioARS = precioNum * TC
   const senaARS = Math.round(precioARS * parseInt(form.cantPasajeros) * SENA_PORC / 100)
+
+  const validarCupon = async () => {
+    if (!cupon) return
+    setCuponEstado('idle')
+    const res = await fetch('/api/validar-cupon', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ codigo: cupon, precioUSD: parseFloat(p.precioUSD) || 0 }),
+    })
+    const data = await res.json()
+    if (data.ok) {
+      setDescuentoUSD(data.descuento)
+      setCuponEstado('ok')
+      setCuponMsg(`Cupón aplicado: -USD ${data.descuento.toFixed(0)}`)
+    } else {
+      setCuponEstado('error')
+      setCuponMsg(data.error || 'Cupón inválido')
+    }
+  }
 
   const enviar = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -159,6 +183,22 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
                   <textarea value={form.mensaje} onChange={e => setForm(p => ({ ...p, mensaje: e.target.value }))}
                     rows={3} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#00AEEF] resize-none" />
                 </div>
+                {/* Cupón de descuento */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Cupón de descuento (opcional)</label>
+                  <div className="flex gap-2">
+                    <input type="text" value={cupon} onChange={e => setCupon(e.target.value.toUpperCase())}
+                      placeholder="Ej: VERANO10"
+                      className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#00AEEF] uppercase" />
+                    <button type="button" onClick={validarCupon}
+                      className="px-3 py-2 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition">
+                      Aplicar
+                    </button>
+                  </div>
+                  {cuponMsg && (
+                    <p className={`text-xs mt-1 ${cuponEstado === 'ok' ? 'text-green-600' : 'text-red-500'}`}>{cuponMsg}</p>
+                  )}
+                </div>
                 {estado === 'error' && <p className="text-red-500 text-xs">Hubo un error. Intentá de nuevo.</p>}
                 <button type="submit" disabled={estado === 'enviando'}
                   className="w-full text-white font-bold py-3 rounded-xl transition disabled:opacity-60"
@@ -176,6 +216,9 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
             )}
           </div>
         </div>
+      </div>
+      <div className="max-w-4xl mx-auto px-4 pb-12">
+        <PaquetesSimilares idActual={id} destino={p.destino || p.titulo} />
       </div>
     </div>
   )
