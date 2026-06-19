@@ -6,6 +6,15 @@ import { emojiDestino } from '@/lib/paquetes'
 import paquetesData from '@/data/paquetes.json'
 import Link from 'next/link'
 
+const DESTINOS_POPULARES = [
+  { nombre: 'Termas de Río Hondo', slug: 'termas-de-r%C3%ADo-hondo', emoji: '♨️' },
+  { nombre: 'Brasil', slug: 'brasil', emoji: '🇧🇷' },
+  { nombre: 'Cancún', slug: 'canc%C3%BAn', emoji: '🌴' },
+  { nombre: 'Bariloche', slug: 'bariloche', emoji: '🏔️' },
+  { nombre: 'Europa', slug: 'europa', emoji: '🗺️' },
+  { nombre: 'Mendoza', slug: 'mendoza', emoji: '🍷' },
+]
+
 const paquetes = paquetesData as Paquete[]
 const CATEGORIAS = ['Todos', ...Array.from(new Set(paquetes.map(p => p.categoria).filter(Boolean))).sort()]
 
@@ -60,6 +69,22 @@ export default function Home() {
       </section>
 
       <div className="max-w-6xl mx-auto px-4 py-8">
+
+        {/* DESTINOS POPULARES */}
+        {!busqueda && (
+          <section className="mb-8">
+            <h3 className="text-lg font-bold text-gray-800 mb-3">🌍 Explorá por destino</h3>
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+              {DESTINOS_POPULARES.map(d => (
+                <Link key={d.slug} href={`/destino/${d.slug}`}
+                  className="bg-white rounded-xl shadow hover:shadow-md transition p-3 text-center group">
+                  <div className="text-2xl mb-1">{d.emoji}</div>
+                  <p className="text-xs font-semibold text-gray-700 leading-tight group-hover:text-[#00AEEF]">{d.nombre}</p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* DESTACADOS */}
         {!busqueda && destacados.length > 0 && (
