@@ -4,10 +4,10 @@ import paquetes from '@/data/paquetes.json'
 
 type Paquete = {
   id: string
-  nombre: string
+  titulo: string
   destino: string
   precioUSD: string | number
-  imagen: string
+  foto: string
   noches?: string | number
 }
 
@@ -28,14 +28,17 @@ export default function PaquetesSimilares({ idActual, destino }: { idActual: str
             className="rounded-xl overflow-hidden shadow hover:shadow-lg transition group border border-gray-100">
             <div className="relative h-40 overflow-hidden">
               <img
-                src={p.imagen || '/icon.png'}
-                alt={p.nombre}
+                src={p.foto || '/icon.png'}
+                alt={p.titulo}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
             </div>
             <div className="p-3">
-              <p className="font-semibold text-gray-800 text-sm line-clamp-2">{p.nombre}</p>
-              <p className="text-[#00AEEF] font-bold mt-1">USD {Number(p.precioUSD).toLocaleString()}</p>
+              <p className="font-semibold text-gray-800 text-sm line-clamp-2">{p.titulo}</p>
+              {Number(p.precioUSD) > 0
+                ? <p className="text-[#00AEEF] font-bold mt-1">USD {Number(p.precioUSD).toLocaleString()}</p>
+                : <p className="text-[#00AEEF] font-bold mt-1">Consultá precio</p>
+              }
               {p.noches && <p className="text-xs text-gray-500">{p.noches} noches</p>}
             </div>
           </Link>
