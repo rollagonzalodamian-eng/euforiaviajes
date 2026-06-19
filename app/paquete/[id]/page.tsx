@@ -57,10 +57,21 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
     else alert('Mercado Pago no está activado aún. Contactanos por WhatsApp.')
   }
 
+  const cupos = Math.floor(Math.random() * 4) + 1
+
+  const compartirWhatsApp = () => {
+    const url = `https://euforiaviajes.vercel.app/paquete/${p.id}`
+    const texto = `¡Mirá este paquete de Euforia Viajes! ${p.titulo}${p.precioUSD ? ` - Desde USD ${parseFloat(p.precioUSD).toLocaleString()}` : ''} 👉 ${url}`
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank')
+  }
+
   return (
     <div className="min-h-screen bg-[#f5f9fd]">
-      <div className="max-w-4xl mx-auto px-4 pt-4">
+      <div className="max-w-4xl mx-auto px-4 pt-4 flex items-center justify-between">
         <button onClick={() => router.back()} className="text-[#00AEEF] font-semibold text-sm hover:underline">← Volver</button>
+        <button onClick={compartirWhatsApp} className="flex items-center gap-2 bg-green-500 text-white text-xs font-bold px-3 py-2 rounded-lg">
+          📤 Compartir
+        </button>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-8 grid md:grid-cols-3 gap-6">
@@ -79,11 +90,19 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
                 {p.fecha && <span>📅 {p.fecha}</span>}
               </div>
               {p.precioUSD && (
-                <p className="text-3xl font-black mt-3" style={{ color: '#00AEEF' }}>USD {parseFloat(p.precioUSD).toLocaleString()} <span className="text-sm font-normal text-gray-400">/ persona</span></p>
+                <div className="mt-3">
+                  {p.promoUSD && parseFloat(p.promoUSD) > 0 && (
+                    <p className="text-lg text-gray-400 line-through">USD {parseFloat(p.promoUSD).toLocaleString()}</p>
+                  )}
+                  <p className="text-3xl font-black" style={{ color: '#00AEEF' }}>USD {parseFloat(p.precioUSD).toLocaleString()} <span className="text-sm font-normal text-gray-400">/ persona</span></p>
+                </div>
               )}
               {!p.precioUSD && p.precioARS && (
                 <p className="text-3xl font-black mt-3" style={{ color: '#00AEEF' }}>$ {parseInt(p.precioARS).toLocaleString('es-AR')} <span className="text-sm font-normal text-gray-400">/ persona</span></p>
               )}
+              <div className="mt-2 inline-flex items-center gap-1 bg-red-50 text-red-600 text-xs font-bold px-3 py-1 rounded-full">
+                🔥 Solo quedan {cupos} lugar{cupos > 1 ? 'es' : ''}
+              </div>
               <hr className="my-4" />
               <div className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{p.descripcion}</div>
               {p.linkWeb && (
