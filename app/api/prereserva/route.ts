@@ -18,6 +18,15 @@ export async function POST(req: NextRequest) {
 
   await guardarEnKV({ nombre, email, telefono, cantPasajeros, fechaDeseada, mensaje, paqueteTitulo, paqueteId })
 
+  // Notificacion Telegram
+  try {
+    await fetch(`${process.env.NEXT_PUBLIC_URL}/api/notify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titulo: paqueteTitulo, nombre, email, telefono }),
+    })
+  } catch {}
+
   try {
     await resend.emails.send({
       from: 'Euforia Viajes App <onboarding@resend.dev>',
