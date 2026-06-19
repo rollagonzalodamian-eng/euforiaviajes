@@ -28,7 +28,10 @@ const paquetes = paquetesData as unknown as Paquete[]
 export default function AdminPage() {
   const [pass, setPass] = useState('')
   const [autenticado, setAutenticado] = useState(false)
-  const [tab, setTab] = useState<'fotos' | 'reservas' | 'stats' | 'config'>('stats')
+  const [tab, setTab] = useState<'fotos' | 'reservas' | 'stats' | 'config' | 'resenas'>('stats')
+  const [resenas, setResenas] = useState<any[]>([])
+  const [nuevaResena, setNuevaResena] = useState({ nombre: '', ciudad: '', destino: '', texto: '', estrellas: 5, fecha: '' })
+  const [guardandoResena, setGuardandoResena] = useState(false)
   const [config, setConfig] = useState({ senaPorc: 15, tipoCambio: 1050, whatsapp: '542804321400', emailAdmin: 'adm@viajaconeuforia.com' })
   const [guardandoConfig, setGuardandoConfig] = useState(false)
   const [mensajeConfig, setMensajeConfig] = useState('')
@@ -57,6 +60,32 @@ export default function AdminPage() {
   async function cargarReservas() {
     const res = await fetch('/api/admin/reservas')
     if (res.ok) setReservas(await res.json())
+  }
+
+  async function cargarResenas() {
+    const res = await fetch('/api/admin/resenas')
+    if (res.ok) setResenas(await res.json())
+  }
+
+  async function agregarResena() {
+    setGuardandoResena(true)
+    await fetch('/api/admin/resenas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pass, accion: 'agregar', resena: nuevaResena }),
+    })
+    setNuevaResena({ nombre: '', ciudad: '', destino: '', texto: '', estrellas: 5, fecha: '' })
+    await cargarResenas()
+    setGuardandoResena(false)
+  }
+
+  async function eliminarResena(id: string) {
+    await fetch('/api/admin/resenas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pass, accion: 'eliminar', resena: { id } }),
+    })
+    await cargarResenas()
   }
 
   async function guardarConfig() {
@@ -147,7 +176,7 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="flex border-b bg-white">
-        {([['stats', 'Resumen'], ['fotos', 'Fotos'], ['reservas', 'Pre-Reservas'], ['config', 'Config']] as const).map(([key, label]) => (
+        {([['stats', 'Resumen'], ['fotos', 'Fotos'], ['reservas', 'Reservas'], ['resenas', 'Reseñas'], ['config', 'Config']] as const).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
@@ -280,6 +309,74 @@ export default function AdminPage() {
                   </div>
                 )
               })}
+            </div>
+          </div>
+        )}
+
+        {/* RESEÑAS */}
+        {tab === 'resenas' && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-800">Reseñas de viajeros</h2>
+              <button onClick={cargarResenas} className="text-[#00AEEF] text-sm">Actualizar</button>
+            </div>
+
+            {/* Agregar nueva */}
+            <div className="bg-white rounded-xl shadow-sm border p-4 mb-4 space-y-3">
+              <p className="font-semibold text-gray-700 text-sm">Agregar reseña</p>
+              <div className="grid grid-cols-2 gap-2">
+                <input placeholder="Nombre (ej: María G.)" value={nuevaResena.nombre}
+                  onChange={e => setNuevaResena(r => ({ ...r, nombre: e.target.value }))}
+                  className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00AEEF]" />
+                <input placeholder="Ciudad (ej: Neuquén)" value={nuevaResena.ciudad}
+                  onChange={e => setNuevaResena(r => ({ ...r, ciudad: e.target.value }))}
+                  className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00AEEF]" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <input placeholder="Destino (ej: Cancún)" value={nuevaResena.destino}
+                  onChange={e => setNuevaResena(r => ({ ...r, destino: e.target.value }))}
+                  className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00AEEF]" />
+                <input placeholder="Fecha (ej: 2026-03)" value={nuevaResena.fecha}
+                  onChange={e => setNuevaResena(r => ({ ...r, fecha: e.target.value }))}
+                  className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00AEEF]" />
+              </div>
+              <textarea placeholder="Texto de la reseña..." rows={3} value={nuevaResena.texto}
+                onChange={e => setNuevaResena(r => ({ ...r, texto: e.target.value }))}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00AEEF] resize-none" />
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-600">Estrellas:</span>
+                {[5,4,3].map(n => (
+                  <button key={n} onClick={() => setNuevaResena(r => ({ ...r, estrellas: n }))}
+                    className={`px-3 py-1 rounded-lg text-sm border ${nuevaResena.estrellas === n ? 'bg-yellow-400 text-white border-yellow-400' : 'border-gray-200'}`}>
+                    {'⭐'.repeat(n)}
+                  </button>
+                ))}
+              </div>
+              <button onClick={agregarResena} disabled={guardandoResena || !nuevaResena.nombre || !nuevaResena.texto}
+                className="w-full bg-[#00AEEF] text-white py-2 rounded-lg text-sm font-semibold disabled:opacity-50">
+                {guardandoResena ? 'Guardando...' : '+ Agregar reseña'}
+              </button>
+            </div>
+
+            {/* Lista */}
+            <div className="space-y-3">
+              {resenas.length === 0 && (
+                <p className="text-center text-gray-400 py-8 text-sm">No hay reseñas guardadas. Agregá la primera arriba.</p>
+              )}
+              {resenas.map((r: any) => (
+                <div key={r.id} className="bg-white rounded-xl shadow-sm border p-4 flex gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-gray-800 text-sm">{r.nombre}</span>
+                      <span className="text-xs text-gray-400">{r.ciudad}</span>
+                      <span className="text-xs text-yellow-400">{'⭐'.repeat(r.estrellas)}</span>
+                    </div>
+                    <p className="text-xs text-[#00AEEF] mb-1">✈️ {r.destino}</p>
+                    <p className="text-sm text-gray-600">"{r.texto}"</p>
+                  </div>
+                  <button onClick={() => eliminarResena(r.id)} className="text-red-400 hover:text-red-600 text-sm shrink-0">✕</button>
+                </div>
+              ))}
             </div>
           </div>
         )}

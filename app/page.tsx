@@ -5,6 +5,7 @@ import type { Paquete } from '@/lib/types'
 import { emojiDestino } from '@/lib/paquetes'
 import paquetesData from '@/data/paquetes.json'
 import Link from 'next/link'
+import Resenas from '@/components/Resenas'
 
 const DESTINOS_POPULARES = [
   { nombre: 'Termas de Río Hondo', slug: 'termas-de-r%C3%ADo-hondo', emoji: '♨️' },
@@ -204,6 +205,9 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* RESEÑAS */}
+      {!busqueda && <Resenas />}
 
       {/* FOOTER */}
       <footer className="text-white mt-12 py-6 text-center text-sm" style={{ backgroundColor: '#00AEEF' }}>
