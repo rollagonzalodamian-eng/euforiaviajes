@@ -40,6 +40,8 @@ export default function AdminPage() {
   const [cupones, setCupones] = useState<any[]>([])
   const [nuevoCupon, setNuevoCupon] = useState({ codigo: '', descuento: 10, tipo: 'porcentaje', activo: true, maxUsos: 100 })
   const [guardandoCupon, setGuardandoCupon] = useState(false)
+  const [syncEstado, setSyncEstado] = useState<'idle' | 'sincronizando' | 'ok' | 'error'>('idle')
+  const [syncInfo, setSyncInfo] = useState<{ total?: number; fecha?: string; error?: string } | null>(null)
   const [fotos, setFotos] = useState<Record<string, string>>({})
   const [galerias, setGalerias] = useState<Record<string, string[]>>({})
   const [editandoGaleria, setEditandoGaleria] = useState<string | null>(null)
@@ -113,6 +115,28 @@ export default function AdminPage() {
     setGuardandoOferta(false)
     setMensaje('Banner guardado')
     setTimeout(() => setMensaje(''), 3000)
+  }
+
+  async function sincronizarAppSheet() {
+    setSyncEstado('sincronizando')
+    try {
+      const res = await fetch('/api/sync-appsheet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pass }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setSyncEstado('ok')
+        setSyncInfo({ total: data.total, fecha: data.fecha })
+      } else {
+        setSyncEstado('error')
+        setSyncInfo({ error: data.error })
+      }
+    } catch (e: any) {
+      setSyncEstado('error')
+      setSyncInfo({ error: e.message })
+    }
   }
 
   async function cargarCupones() {
@@ -276,7 +300,26 @@ export default function AdminPage() {
         {/* RESUMEN */}
         {tab === 'stats' && (
           <div>
-            <h2 className="text-lg font-bold text-gray-800 mb-4">Resumen</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-800">Resumen</h2>
+              <button
+                onClick={sincronizarAppSheet}
+                disabled={syncEstado === 'sincronizando'}
+                className="flex items-center gap-2 bg-[#00AEEF] text-white text-sm font-bold px-4 py-2 rounded-lg disabled:opacity-60"
+              >
+                {syncEstado === 'sincronizando' ? '⏳ Sincronizando...' : '🔄 Sync AppSheet'}
+              </button>
+            </div>
+            {syncEstado === 'ok' && syncInfo && (
+              <div className="mb-4 bg-green-100 text-green-700 px-4 py-3 rounded-lg text-sm">
+                ✅ Sincronizado: {syncInfo.total} paquetes actualizados desde AppSheet
+              </div>
+            )}
+            {syncEstado === 'error' && syncInfo && (
+              <div className="mb-4 bg-red-100 text-red-700 px-4 py-3 rounded-lg text-sm">
+                ❌ Error: {syncInfo.error}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3 mb-6">
               <div className="bg-white rounded-xl p-4 shadow-sm border">
                 <div className="text-3xl font-bold text-[#00AEEF]">{paquetes.length}</div>
