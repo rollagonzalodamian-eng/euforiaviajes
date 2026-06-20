@@ -42,6 +42,8 @@ export default function AdminPage() {
   const [guardandoCupon, setGuardandoCupon] = useState(false)
   const [syncEstado, setSyncEstado] = useState<'idle' | 'sincronizando' | 'ok' | 'error'>('idle')
   const [syncInfo, setSyncInfo] = useState<{ total?: number; fecha?: string; error?: string } | null>(null)
+  const [syncFotosEstado, setSyncFotosEstado] = useState<'idle' | 'sincronizando' | 'ok' | 'error'>('idle')
+  const [syncFotosInfo, setSyncFotosInfo] = useState<{ actualizados?: number; total?: number; error?: string } | null>(null)
   const [fotos, setFotos] = useState<Record<string, string>>({})
   const [galerias, setGalerias] = useState<Record<string, string[]>>({})
   const [editandoGaleria, setEditandoGaleria] = useState<string | null>(null)
@@ -115,6 +117,28 @@ export default function AdminPage() {
     setGuardandoOferta(false)
     setMensaje('Banner guardado')
     setTimeout(() => setMensaje(''), 3000)
+  }
+
+  async function sincronizarFotos() {
+    setSyncFotosEstado('sincronizando')
+    try {
+      const res = await fetch('/api/admin/sync-fotos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pass, limite: 50 }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setSyncFotosEstado('ok')
+        setSyncFotosInfo({ actualizados: data.actualizados, total: data.total })
+      } else {
+        setSyncFotosEstado('error')
+        setSyncFotosInfo({ error: data.error || data.mensaje })
+      }
+    } catch (e: any) {
+      setSyncFotosEstado('error')
+      setSyncFotosInfo({ error: e.message })
+    }
   }
 
   async function sincronizarAppSheet() {
@@ -302,14 +326,33 @@ export default function AdminPage() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-800">Resumen</h2>
-              <button
-                onClick={sincronizarAppSheet}
-                disabled={syncEstado === 'sincronizando'}
-                className="flex items-center gap-2 bg-[#00AEEF] text-white text-sm font-bold px-4 py-2 rounded-lg disabled:opacity-60"
-              >
-                {syncEstado === 'sincronizando' ? '⏳ Sincronizando...' : '🔄 Sync AppSheet'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={sincronizarAppSheet}
+                  disabled={syncEstado === 'sincronizando'}
+                  className="bg-[#00AEEF] text-white text-sm font-bold px-4 py-2 rounded-lg disabled:opacity-60"
+                >
+                  {syncEstado === 'sincronizando' ? '⏳ Sincronizando...' : '🔄 Sync AppSheet'}
+                </button>
+                <button
+                  onClick={sincronizarFotos}
+                  disabled={syncFotosEstado === 'sincronizando'}
+                  className="bg-purple-600 text-white text-sm font-bold px-4 py-2 rounded-lg disabled:opacity-60"
+                >
+                  {syncFotosEstado === 'sincronizando' ? '⏳ Buscando fotos...' : '🖼️ Sync Fotos'}
+                </button>
+              </div>
             </div>
+            {syncFotosEstado === 'ok' && syncFotosInfo && (
+              <div className="mb-3 bg-purple-100 text-purple-700 px-4 py-3 rounded-lg text-sm">
+                🖼️ Fotos actualizadas: {syncFotosInfo.actualizados} de {syncFotosInfo.total} paquetes sin foto. Apretá de nuevo para continuar con los siguientes 50.
+              </div>
+            )}
+            {syncFotosEstado === 'error' && syncFotosInfo && (
+              <div className="mb-3 bg-red-100 text-red-700 px-4 py-3 rounded-lg text-sm">
+                ❌ {syncFotosInfo.error}
+              </div>
+            )}
             {syncEstado === 'ok' && syncInfo && (
               <div className="mb-4 bg-green-100 text-green-700 px-4 py-3 rounded-lg text-sm">
                 ✅ Sincronizado: {syncInfo.total} paquetes actualizados desde AppSheet
