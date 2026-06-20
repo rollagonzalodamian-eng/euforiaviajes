@@ -4,30 +4,43 @@ import { redis } from '@/lib/redis'
 const APP_ID = 'd3b75a41-2f08-45be-9325-27af6a1c023e'
 const API_URL = `https://api.appsheet.com/api/v2/apps/${APP_ID}/tables/Salidas/Action`
 
+function fixEncoding(str: string): string {
+  if (!str) return ''
+  try { return decodeURIComponent(escape(str)) } catch { return str }
+}
+
+function extraerUrl(campo: string): string {
+  if (!campo) return ''
+  try { const obj = JSON.parse(campo); return obj.Url || obj.url || '' } catch {
+    return campo.startsWith('http') ? campo : ''
+  }
+}
+
 function mapearSalida(row: Record<string, string>, index: number) {
   return {
-    id: row['_RowNumber'] || row['ID'] || row['Id'] || String(index),
-    titulo: row['Título'] || row['Titulo'] || row['Title'] || row['TITULO'] || '',
-    categoria: row['Categoría'] || row['Categoria'] || row['CATEGORIA'] || '',
-    destacado: (row['Destacado'] || '').toLowerCase() === 'true' || row['Destacado'] === '1',
-    enPromocion: (row['En Promocion'] || row['EnPromocion'] || row['Promo'] || '').toLowerCase() === 'true',
-    destino: row['Destino'] || row['DESTINO'] || row['Subcategorías'] || row['Subcategorias'] || '',
-    descripcion: row['Descripción'] || row['Descripcion'] || row['DESCRIPCION'] || '',
-    pais: row['País'] || row['Pais'] || row['PAIS'] || 'Argentina',
-    origen: row['Origen'] || row['ORIGEN'] || '',
-    transporte: row['Transporte'] || row['TRANSPORTE'] || '',
-    servicio: row['Servicio'] || row['SERVICIO'] || '',
-    noches: row['Noches'] || row['NOCHES'] || '',
-    precioUSD: row['Precio USD'] || row['PrecioUSD'] || row['Precio_USD'] || row['PRECIO USD'] || '',
-    promoUSD: row['Promo USD'] || row['PromoUSD'] || row['PROMO USD'] || '',
-    precioARS: row['Precio ARS'] || row['PrecioARS'] || row['Precio_ARS'] || row['PRECIO ARS'] || '',
-    linkWeb: row['Link Web'] || row['LinkWeb'] || row['Link_Web'] || row['URL'] || '',
-    itinerario: row['Itinerario'] || row['ITINERARIO'] || '',
-    fecha: row['Fecha'] || row['FECHA'] || '',
-    vendedor: row['Vendedor'] || row['VENDEDOR'] || '',
-    disponible: row['Disponible'] || row['DISPONIBLE'] || '50',
-    urlImagenes: row['URL Imágenes'] || row['URLImagenes'] || row['Imagenes'] || row['Fotos'] || '',
-    foto: row['Foto'] || row['Imagen'] || row['URL Imagen'] || row['URLImagen'] || row['imagen'] || '',
+    id: row['Row ID'] || String(index),
+    titulo: fixEncoding(row['TÃ­tulo'] || row['Título'] || ''),
+    categoria: fixEncoding(row['CategorÃ­a'] || row['Categoría'] || ''),
+    destacado: row['Destacado'] === 'Si',
+    enPromocion: row['En PromociÃ³n'] === 'Si' || row['En Promoción'] === 'Si',
+    destino: fixEncoding(row['Destino'] || ''),
+    descripcion: fixEncoding(row['DescripciÃ³n'] || row['Descripción'] || ''),
+    pais: fixEncoding(row['PaÃ­s'] || row['País'] || 'Argentina'),
+    origen: fixEncoding(row['Origen'] || ''),
+    transporte: fixEncoding(row['Transporte'] || ''),
+    servicio: fixEncoding(row['Servicio'] || ''),
+    noches: row['Noches'] || '',
+    precioUSD: row['Precio Lista USD'] || '',
+    promoUSD: row['Promo Efectivo USD'] || '',
+    precioARS: row['Precio Lista ARS'] || '',
+    promoARS: row['Promo Efectivo ARS'] || '',
+    linkWeb: extraerUrl(row['Enlace WooCoommerce'] || ''),
+    itinerario: extraerUrl(row['Itinerario'] || ''),
+    fecha: row['Fecha'] || '',
+    vendedor: row['Vendedor'] || '',
+    disponible: row['Estado'] || 'Disponible',
+    foto: extraerUrl(row['URL Imagenes'] || row['ImÃ¡genes y Videos'] || ''),
+    urlImagenes: extraerUrl(row['URL Imagenes'] || ''),
   }
 }
 
@@ -36,10 +49,8 @@ export async function GET(req: NextRequest) {
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ ok: false }, { status: 401 })
   }
-
   const apiKey = process.env.APPSHEET_API_KEY
-  if (!apiKey) return NextResponse.json({ ok: false, error: 'Sin API key' })
-
+  if (!apiKey) return NextResponse.json({ ok: false })
   try {
     const res = await fetch(API_URL, {
       method: 'POST',
@@ -47,14 +58,11 @@ export async function GET(req: NextRequest) {
       body: JSON.stringify({ Action: 'Find', Properties: {}, Rows: [] }),
     })
     if (!res.ok) return NextResponse.json({ ok: false, error: res.status })
-
     const data = await res.json()
-    const rows: Record<string, string>[] = Array.isArray(data) ? data : (data.rows || [])
+    const rows: Record<string, string>[] = Array.isArray(data) ? data : (data.value || data.rows || [])
     const paquetes = rows.map(mapearSalida).filter(p => p.titulo)
-
     await redis.set('paquetes_sync', paquetes)
     await redis.set('paquetes_sync_fecha', new Date().toISOString())
-
     return NextResponse.json({ ok: true, total: paquetes.length })
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e.message })
