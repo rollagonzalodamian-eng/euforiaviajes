@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import type { Paquete } from '@/lib/types'
 import { emojiDestino } from '@/lib/paquetes'
 import paquetesData from '@/data/paquetes.json'
@@ -16,16 +16,23 @@ const DESTINOS_POPULARES = [
   { nombre: 'Mendoza', slug: 'mendoza', emoji: '🍷' },
 ]
 
-const paquetes = paquetesData as Paquete[]
-const CATEGORIAS = ['Todos', ...Array.from(new Set(paquetes.map(p => p.categoria).filter(Boolean))).sort()]
-
 export default function Home() {
+  const [paquetes, setPaquetes] = useState<Paquete[]>(paquetesData as Paquete[])
   const [busqueda, setBusqueda] = useState('')
   const [categoria, setCategoria] = useState('Todos')
   const [transporte, setTransporte] = useState('Todos')
   const [ordenPrecio, setOrdenPrecio] = useState('')
   const [moneda, setMoneda] = useState<'USD' | 'ARS'>('USD')
+
+  useEffect(() => {
+    fetch('/api/paquetes').then(r => r.json()).then(data => {
+      if (Array.isArray(data) && data.length > 0) setPaquetes(data)
+    }).catch(() => {})
+  }, [])
+
+  const CATEGORIAS = ['Todos', ...Array.from(new Set(paquetes.map(p => p.categoria).filter(Boolean))).sort()]
   const TC = 1050
+
 
   const filtrados = useMemo(() => {
     let r = paquetes.filter(p => {
