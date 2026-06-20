@@ -13,14 +13,14 @@ function fixEncoding(str: string): string {
   }
 }
 
-function extraerUrl(campo: string): string {
+function extraerUrl(campo: any): string {
   if (!campo) return ''
-  try {
-    const obj = JSON.parse(campo)
-    return obj.Url || obj.url || ''
-  } catch {
-    return campo.startsWith('http') ? campo : ''
+  if (typeof campo === 'object') return campo.Url || campo.url || ''
+  if (typeof campo === 'string') {
+    if (campo.startsWith('http')) return campo
+    try { const obj = JSON.parse(campo); return obj.Url || obj.url || '' } catch {}
   }
+  return ''
 }
 
 function mapearSalida(row: Record<string, string>, index: number) {
