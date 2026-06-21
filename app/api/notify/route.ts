@@ -10,11 +10,12 @@ export async function POST(req: NextRequest) {
 
   const mensaje = `🔔 *Nueva pre-reserva*\n\n✈️ *${titulo}*\n👤 ${nombre}\n📧 ${email}\n📱 ${telefono}`
 
-  await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+  const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: chatId, text: mensaje, parse_mode: 'Markdown' }),
   })
+  const tgData = await tgRes.json()
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: tgData.ok, tg: tgData })
 }
