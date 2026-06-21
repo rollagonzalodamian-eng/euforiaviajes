@@ -1,6 +1,7 @@
 'use client'
-import { use, useState } from 'react'
+import { use, useState, useEffect } from 'react'
 import { getPaquete, emojiDestino } from '@/lib/paquetes'
+import type { Paquete } from '@/lib/types'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import PaquetesSimilares from '@/components/PaquetesSimilares'
@@ -11,7 +12,7 @@ const TC = 1050
 
 export default function PaquetePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const p = getPaquete(id)
+  const [p, setP] = useState<Paquete | undefined>(getPaquete(id))
   const router = useRouter()
   const [form, setForm] = useState({ nombre: '', email: '', telefono: '', cantPasajeros: '1', fechaDeseada: '', mensaje: '' })
   const [estado, setEstado] = useState<'idle' | 'enviando' | 'ok' | 'error'>('idle')
@@ -20,6 +21,13 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
   const [descuentoUSD, setDescuentoUSD] = useState(0)
   const [cuponEstado, setCuponEstado] = useState<'idle' | 'ok' | 'error'>('idle')
   const [cuponMsg, setCuponMsg] = useState('')
+
+  useEffect(() => {
+    fetch('/api/paquetes').then(r => r.json()).then((data: Paquete[]) => {
+      const found = data.find(pkg => pkg.id === id)
+      if (found) setP(found)
+    }).catch(() => {})
+  }, [id])
 
   if (!p) return <div className="p-8 text-center">Paquete no encontrado. <Link href="/" className="text-[#00AEEF] underline">Volver</Link></div>
 
