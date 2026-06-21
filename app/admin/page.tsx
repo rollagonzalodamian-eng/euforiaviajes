@@ -28,7 +28,9 @@ const paquetes = paquetesData as unknown as Paquete[]
 export default function AdminPage() {
   const [pass, setPass] = useState('')
   const [autenticado, setAutenticado] = useState(false)
-  const [tab, setTab] = useState<'fotos' | 'reservas' | 'stats' | 'config' | 'resenas' | 'cupones'>('stats')
+  const [tab, setTab] = useState<'fotos' | 'reservas' | 'stats' | 'config' | 'resenas' | 'cupones' | 'usuarios'>('stats')
+  const [usuarios, setUsuarios] = useState<any[]>([])
+  const [cargandoUsuarios, setCargandoUsuarios] = useState(false)
   const [resenas, setResenas] = useState<any[]>([])
   const [nuevaResena, setNuevaResena] = useState({ nombre: '', ciudad: '', destino: '', texto: '', estrellas: 5, fecha: '' })
   const [guardandoResena, setGuardandoResena] = useState(false)
@@ -301,7 +303,7 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="flex border-b bg-white">
-        {([['stats', 'Resumen'], ['fotos', 'Fotos'], ['reservas', 'Reservas'], ['resenas', 'Reseñas'], ['cupones', 'Cupones'], ['config', 'Config']] as const).map(([key, label]) => (
+        {([['stats', 'Resumen'], ['fotos', 'Fotos'], ['reservas', 'Reservas'], ['usuarios', 'Usuarios'], ['resenas', 'Reseñas'], ['cupones', 'Cupones'], ['config', 'Config']] as const).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
@@ -788,6 +790,65 @@ export default function AdminPage() {
                       <span>👥 {r.cantPasajeros} pasajeros</span>
                       {r.fechaDeseada && <span>📅 {r.fechaDeseada}</span>}
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* USUARIOS */}
+        {tab === 'usuarios' && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-800">Usuarios registrados</h2>
+              <button
+                onClick={async () => {
+                  setCargandoUsuarios(true)
+                  const r = await fetch(`/api/admin/usuarios?pass=${encodeURIComponent(pass)}`)
+                  const data = await r.json()
+                  setUsuarios(Array.isArray(data) ? data : [])
+                  setCargandoUsuarios(false)
+                }}
+                className="text-[#00AEEF] text-sm font-medium"
+              >
+                {cargandoUsuarios ? 'Cargando...' : 'Cargar usuarios'}
+              </button>
+            </div>
+            {usuarios.length === 0 ? (
+              <div className="text-center py-12 text-gray-400">
+                <p className="text-4xl mb-3">👥</p>
+                <p>Apretá "Cargar usuarios" para ver la lista</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {usuarios.map((u, i) => (
+                  <div key={i} className="bg-white rounded-xl shadow-sm border p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-semibold text-gray-800">{u.nombre || '(sin nombre)'}</p>
+                        <p className="text-xs text-gray-500">{u.email}</p>
+                        {u.telefono && <p className="text-xs text-gray-400">📱 {u.telefono}</p>}
+                      </div>
+                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${u.rol === 'pasajero' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                        {u.rol === 'pasajero' ? '✈️ Pasajero' : '👤 Visitante'}
+                      </span>
+                    </div>
+                    {u.rol !== 'pasajero' && (
+                      <button
+                        onClick={async () => {
+                          await fetch('/api/admin/usuarios', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ pass, email: u.email, rol: 'pasajero' }),
+                          })
+                          setUsuarios(prev => prev.map(x => x.email === u.email ? { ...x, rol: 'pasajero' } : x))
+                        }}
+                        className="mt-3 text-xs text-[#00AEEF] font-semibold border border-[#00AEEF] rounded-lg px-3 py-1 hover:bg-[#E0F6FF] transition"
+                      >
+                        Marcar como pasajero ✈️
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
