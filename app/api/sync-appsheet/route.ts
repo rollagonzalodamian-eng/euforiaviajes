@@ -7,7 +7,12 @@ const API_URL = `https://api.appsheet.com/api/v2/apps/${APP_ID}/tables/Salidas/A
 function fixEncoding(str: string): string {
   if (!str) return ''
   try {
-    return decodeURIComponent(escape(str))
+    return decodeURIComponent(
+      str.split('').map(c => {
+        const code = c.charCodeAt(0)
+        return code > 127 ? '%' + code.toString(16).toUpperCase().padStart(2, '0') : c
+      }).join('')
+    )
   } catch {
     return str
   }
