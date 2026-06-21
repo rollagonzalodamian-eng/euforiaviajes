@@ -20,12 +20,12 @@ export const authOptions: NextAuthOptions = {
           pass: process.env.RESEND_API_KEY,
         },
       },
-      from: 'Euforia Viajes <onboarding@resend.dev>',
+      from: 'Euforia Viajes <noreply@viajaconeuforia.com>',
       sendVerificationRequest: async ({ identifier: email, url }) => {
         const { Resend } = await import('resend')
         const resend = new Resend(process.env.RESEND_API_KEY)
         await resend.emails.send({
-          from: 'Euforia Viajes <onboarding@resend.dev>',
+          from: 'Euforia Viajes <noreply@viajaconeuforia.com>',
           to: email,
           subject: '🔑 Tu link para ingresar a Euforia Viajes',
           html: `
