@@ -8,11 +8,11 @@ import PaquetesSimilares from '@/components/PaquetesSimilares'
 import GaleriaFotos from '@/components/GaleriaFotos'
 
 const SENA_PORC = 15
-const TC = 1050
 
 export default function PaquetePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const [p, setP] = useState<Paquete | undefined>(getPaquete(id))
+  const [tc, setTc] = useState(1400)
   const router = useRouter()
   const [form, setForm] = useState({ nombre: '', email: '', telefono: '', cantPasajeros: '1', fechaDeseada: '', mensaje: '' })
   const [estado, setEstado] = useState<'idle' | 'enviando' | 'ok' | 'error'>('idle')
@@ -27,12 +27,15 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
       const found = data.find(pkg => pkg.id === id)
       if (found) setP(found)
     }).catch(() => {})
+    fetch('/api/admin/config').then(r => r.json()).then(cfg => {
+      if (cfg?.tipoCambio) setTc(Number(cfg.tipoCambio))
+    }).catch(() => {})
   }, [id])
 
   if (!p) return <div className="p-8 text-center">Paquete no encontrado. <Link href="/" className="text-[#00AEEF] underline">Volver</Link></div>
 
-  const precioNum = Math.max(0, (parseFloat(p.precioUSD) || parseInt(p.precioARS) / TC || 0) - descuentoUSD)
-  const precioARS = precioNum * TC
+  const precioNum = Math.max(0, (parseFloat(p.precioUSD) || parseInt(p.precioARS) / tc || 0) - descuentoUSD)
+  const precioARS = precioNum * tc
   const senaARS = Math.round(precioARS * parseInt(form.cantPasajeros) * SENA_PORC / 100)
 
   const validarCupon = async () => {
