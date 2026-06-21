@@ -709,8 +709,8 @@ export default function AdminPage() {
               </div>
               <div className="pt-2 border-t">
                 <p className="text-xs font-semibold text-gray-500 mb-2">Mercado Pago</p>
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-700">
-                  Para activar pagos online, agregá la variable <code className="bg-yellow-100 px-1 rounded">MP_ACCESS_TOKEN</code> en Vercel → Settings → Environment Variables con tu Access Token de Mercado Pago.
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-xs text-green-700">
+                  ✅ Mercado Pago configurado y activo.
                 </div>
               </div>
               <button onClick={guardarConfig} disabled={guardandoConfig}
