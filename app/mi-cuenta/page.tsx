@@ -181,9 +181,16 @@ export default function MiCuentaPage() {
                       {r.fecha ? new Date(r.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' }) : ''}
                     </p>
                   </div>
-                  <span className="bg-yellow-100 text-yellow-700 text-xs font-bold px-3 py-1 rounded-full">
-                    En gestión
-                  </span>
+                  {(() => {
+                    const e = r.estado || 'en_gestion'
+                    const cfg: Record<string, [string, string]> = {
+                      confirmada: ['bg-green-100 text-green-700', '✅ Confirmada'],
+                      cancelada: ['bg-red-100 text-red-600', '❌ Cancelada'],
+                      en_gestion: ['bg-yellow-100 text-yellow-700', '⏳ En gestión'],
+                    }
+                    const [cls, label] = cfg[e] || cfg.en_gestion
+                    return <span className={`text-xs font-bold px-3 py-1 rounded-full ${cls}`}>{label}</span>
+                  })()}
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-4">
                   <span>👥 {r.cantPasajeros} pasajero{r.cantPasajeros > 1 ? 's' : ''}</span>

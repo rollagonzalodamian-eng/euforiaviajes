@@ -762,7 +762,18 @@ export default function AdminPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {[...reservas].reverse().map((r, i) => (
+                {[...reservas].reverse().map((r, i) => {
+                  const estadoColor: Record<string, string> = {
+                    confirmada: 'bg-green-100 text-green-700',
+                    cancelada: 'bg-red-100 text-red-600',
+                    en_gestion: 'bg-yellow-100 text-yellow-700',
+                  }
+                  const estadoLabel: Record<string, string> = {
+                    confirmada: '✅ Confirmada',
+                    cancelada: '❌ Cancelada',
+                    en_gestion: '⏳ En gestión',
+                  }
+                  return (
                   <div key={i} className="bg-white rounded-xl shadow-sm border p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div>
@@ -776,22 +787,44 @@ export default function AdminPage() {
                       </div>
                       <a
                         href={`https://wa.me/542804321400?text=${encodeURIComponent(`Hola ${r.nombre}! Te contactamos por tu consulta sobre ${r.paqueteTitulo}`)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        target="_blank" rel="noopener noreferrer"
                         className="bg-green-500 text-white text-xs px-3 py-1 rounded-full font-medium"
-                      >
-                        WhatsApp
-                      </a>
+                      >WhatsApp</a>
                     </div>
                     <p className="text-sm text-[#00AEEF] font-medium mb-2">{r.paqueteTitulo}</p>
-                    <div className="grid grid-cols-2 gap-1 text-xs text-gray-600">
+                    <div className="grid grid-cols-2 gap-1 text-xs text-gray-600 mb-3">
                       <span>📧 {r.email}</span>
                       <span>📱 {r.telefono}</span>
                       <span>👥 {r.cantPasajeros} pasajeros</span>
                       {r.fechaDeseada && <span>📅 {r.fechaDeseada}</span>}
                     </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${estadoColor[r.estado || 'en_gestion']}`}>
+                        {estadoLabel[r.estado || 'en_gestion']}
+                      </span>
+                      <select
+                        value={r.estado || 'en_gestion'}
+                        onChange={async (e) => {
+                          const nuevoEstado = e.target.value
+                          await fetch('/api/admin/reservas', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ pass, email: r.email, paqueteId: r.paqueteId, estado: nuevoEstado }),
+                          })
+                          setReservas((prev: any[]) => prev.map((x: any, j: number) =>
+                            j === (reservas.length - 1 - i) ? { ...x, estado: nuevoEstado } : x
+                          ))
+                        }}
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 outline-none focus:border-[#00AEEF]"
+                      >
+                        <option value="en_gestion">⏳ En gestión</option>
+                        <option value="confirmada">✅ Confirmada</option>
+                        <option value="cancelada">❌ Cancelada</option>
+                      </select>
+                    </div>
                   </div>
-                ))}
+                )})}
+
               </div>
             )}
           </div>

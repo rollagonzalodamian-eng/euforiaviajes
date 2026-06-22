@@ -6,11 +6,9 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 async function guardarEnKV(data: object) {
   try {
     const { redis } = await import('@/lib/redis')
-    const reserva = { ...data, fecha: new Date().toISOString() }
+    const reserva = { ...data, fecha: new Date().toISOString(), estado: 'en_gestion' }
     await redis.lpush('reservas', reserva)
-  } catch {
-    // Redis no configurado aún, ignorar
-  }
+  } catch {}
 }
 
 export async function POST(req: NextRequest) {
@@ -27,9 +25,10 @@ export async function POST(req: NextRequest) {
     })
   } catch {}
 
+  // Email al admin
   try {
     await resend.emails.send({
-      from: 'Euforia Viajes App <onboarding@resend.dev>',
+      from: 'Euforia Viajes <noreply@viajaconeuforia.com>',
       to: 'adm@viajaconeuforia.com',
       subject: `Nueva pre-reserva: ${paqueteTitulo}`,
       html: `
@@ -47,16 +46,49 @@ export async function POST(req: NextRequest) {
               ${fechaDeseada ? `<tr><td style="padding:6px 0;color:#666">📅 Fecha deseada</td><td style="font-weight:bold">${fechaDeseada}</td></tr>` : ''}
               ${mensaje ? `<tr><td style="padding:6px 0;color:#666">💬 Consulta</td><td>${mensaje}</td></tr>` : ''}
             </table>
-            <div style="margin-top:20px;padding:12px;background:#E0F6FF;border-radius:8px;font-size:13px;color:#0090C5">
-              ⚡ Esta solicitud llegó desde la app web de Euforia Viajes. Contactar al cliente a la brevedad.
-            </div>
           </div>
         </div>
       `,
     })
-    return NextResponse.json({ ok: true })
-  } catch (e) {
-    console.error(e)
-    return NextResponse.json({ ok: false }, { status: 500 })
-  }
+  } catch {}
+
+  // Email de confirmación al cliente
+  try {
+    await resend.emails.send({
+      from: 'Euforia Viajes <noreply@viajaconeuforia.com>',
+      to: email,
+      subject: `✈️ Recibimos tu consulta sobre ${paqueteTitulo}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+          <div style="background:#00AEEF;padding:24px;border-radius:12px 12px 0 0;text-align:center">
+            <h1 style="color:white;margin:0;font-size:22px">✈️ Euforia Viajes</h1>
+          </div>
+          <div style="background:#ffffff;padding:32px;border-radius:0 0 12px 12px;border:1px solid #eee">
+            <h2 style="color:#333;margin-top:0">¡Hola ${nombre}! 👋</h2>
+            <p style="color:#555;font-size:15px;line-height:1.6">
+              Recibimos tu consulta sobre <strong style="color:#00AEEF">${paqueteTitulo}</strong>.<br/>
+              Nuestro equipo va a contactarte en las próximas <strong>24 horas</strong> para confirmar los detalles.
+            </p>
+            <div style="background:#f0fbff;border-left:4px solid #00AEEF;padding:16px;border-radius:0 8px 8px 0;margin:24px 0">
+              <p style="margin:0;color:#0090C5;font-size:14px"><strong>Resumen de tu consulta:</strong></p>
+              <p style="margin:8px 0 0;color:#333;font-size:14px">📦 ${paqueteTitulo}</p>
+              <p style="margin:4px 0 0;color:#333;font-size:14px">👥 ${cantPasajeros} pasajero${cantPasajeros > 1 ? 's' : ''}</p>
+              ${fechaDeseada ? `<p style="margin:4px 0 0;color:#333;font-size:14px">📅 Fecha deseada: ${fechaDeseada}</p>` : ''}
+            </div>
+            <p style="color:#555;font-size:14px">
+              ¿Necesitás respuesta urgente? Escribinos por WhatsApp:
+            </p>
+            <a href="https://wa.me/542804321400" style="display:inline-block;background:#25D366;color:white;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:15px">
+              💬 Escribir por WhatsApp
+            </a>
+            <p style="color:#aaa;font-size:12px;margin-top:32px">
+              Euforia Viajes · viajaconeuforia.com
+            </p>
+          </div>
+        </div>
+      `,
+    })
+  } catch {}
+
+  return NextResponse.json({ ok: true })
 }
