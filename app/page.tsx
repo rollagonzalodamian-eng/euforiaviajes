@@ -5,6 +5,7 @@ import type { Paquete } from '@/lib/types'
 import paquetesData from '@/data/paquetes.json'
 import Link from 'next/link'
 import Resenas from '@/components/Resenas'
+import ImgFallback from '@/components/ImgFallback'
 
 const DESTINOS_POPULARES = [
   { nombre: 'Termas', slug: 'termas', emoji: '♨️' },
@@ -140,7 +141,7 @@ export default function Home() {
                 <Link key={p.id} href={`/paquete/${p.id}`}
                   className="bg-white rounded-2xl shadow hover:shadow-xl transition overflow-hidden group flex flex-col">
                   <div className="h-48 overflow-hidden relative">
-                    <img src={p.foto} alt={p.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <ImgFallback src={p.foto} alt={p.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                     {p.enPromocion && (
                       <span className="absolute top-3 left-3 bg-[#00AEEF] text-white text-[10px] px-2.5 py-1 rounded-full font-bold shadow">🔥 PROMO</span>
@@ -237,7 +238,7 @@ export default function Home() {
             <Link key={p.id} href={`/paquete/${p.id}`}
               className="bg-white rounded-2xl shadow hover:shadow-lg transition group flex flex-col overflow-hidden">
               <div className="h-44 overflow-hidden relative">
-                <img src={p.foto} alt={p.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                <ImgFallback src={p.foto} alt={p.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 {p.enPromocion && (
                   <span className="absolute top-2 right-2 text-white text-[10px] px-2 py-0.5 rounded-full font-bold"
                     style={{ backgroundColor: '#00AEEF' }}>PROMO</span>

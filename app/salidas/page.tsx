@@ -2,6 +2,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import type { Paquete } from '@/lib/types'
+import ImgFallback from '@/components/ImgFallback'
 
 function formatFecha(f: string) {
   if (!f) return ''
@@ -79,11 +80,7 @@ export default function SalidasPage() {
             {filtrados.map(p => (
               <div key={p.id} className="bg-white rounded-2xl shadow hover:shadow-lg transition overflow-hidden flex flex-col">
                 <div className="relative h-48 overflow-hidden bg-gray-100">
-                  {p.foto ? (
-                    <img src={p.foto} alt={p.titulo} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl">✈️</div>
-                  )}
+                  <ImgFallback src={p.foto} alt={p.titulo} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                   {p.enPromocion && (
                     <span className="absolute top-2 left-2 text-white text-[10px] px-2 py-1 rounded-full font-bold"
                       style={{ backgroundColor: '#00AEEF' }}>🔥 PROMO</span>
