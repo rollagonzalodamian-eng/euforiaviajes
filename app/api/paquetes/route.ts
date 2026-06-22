@@ -109,7 +109,12 @@ export async function GET() {
     if (sync && sync.length > 0) {
       const merged = sync.map(p => ({
         ...p,
-        foto: (p.foto && p.foto.includes('unsplash')) ? p.foto : (fotosPorId[p.id] || getFotoFallback(p)),
+        foto: (() => {
+          if (p.foto?.includes('unsplash')) return p.foto
+          const sf = fotosPorId[p.id]
+          if (sf?.includes('unsplash')) return sf
+          return getFotoFallback(p)
+        })(),
       }))
       return NextResponse.json(merged)
     }
