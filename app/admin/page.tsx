@@ -20,7 +20,10 @@ type Reserva = {
   cantPasajeros: number
   fechaDeseada?: string
   paqueteTitulo: string
+  paqueteId?: string
   fecha: string
+  estado?: string
+  mensaje?: string
 }
 
 const paquetes = paquetesData as unknown as Paquete[]

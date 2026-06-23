@@ -10,6 +10,7 @@ type Reserva = {
   fechaDeseada?: string
   paqueteTitulo: string
   fecha: string
+  estado?: string
 }
 
 type Perfil = {
