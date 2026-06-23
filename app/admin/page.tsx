@@ -59,6 +59,8 @@ export default function AdminPage() {
   const [editando, setEditando] = useState<string | null>(null)
   const [nuevaUrl, setNuevaUrl] = useState('')
   const [guardando, setGuardando] = useState(false)
+  const [modoFoto, setModoFoto] = useState<'url' | 'archivo'>('archivo')
+  const [subiendoArchivo, setSubiendoArchivo] = useState(false)
   const [mensaje, setMensaje] = useState('')
   const [error, setError] = useState('')
 
@@ -244,6 +246,41 @@ export default function AdminPage() {
     setGuardando(false)
     setEditando(null)
     setNuevaUrl('')
+  }
+
+  async function subirArchivo(id: string, file: File) {
+    setSubiendoArchivo(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        headers: { 'x-admin-pass': pass },
+        body: formData,
+      })
+      const data = await res.json()
+      if (data.ok && data.url) {
+        setNuevaUrl(data.url)
+        // Guardar directamente
+        await fetch('/api/admin/fotos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pass, id, url: data.url }),
+        })
+        setFotos(f => ({ ...f, [id]: data.url }))
+        setMensaje('Foto subida y guardada correctamente')
+        setTimeout(() => setMensaje(''), 3000)
+        setEditando(null)
+        setNuevaUrl('')
+      } else {
+        setMensaje('Error al subir la imagen: ' + (data.error || 'desconocido'))
+        setTimeout(() => setMensaje(''), 4000)
+      }
+    } catch {
+      setMensaje('Error de conexión al subir la imagen')
+      setTimeout(() => setMensaje(''), 4000)
+    }
+    setSubiendoArchivo(false)
   }
 
   const paquetesFiltrados = paquetes.filter(p =>
@@ -455,28 +492,74 @@ export default function AdminPage() {
                     </div>
                     {isEditing && (
                       <div className="px-3 pb-3 border-t pt-3 bg-blue-50">
-                        <input
-                          type="url"
-                          placeholder="https://... URL de la foto portada"
-                          value={nuevaUrl}
-                          onChange={e => setNuevaUrl(e.target.value)}
-                          className="w-full border rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-[#00AEEF]"
-                        />
-                        {nuevaUrl && (
-                          <img src={nuevaUrl} alt="preview" className="w-full h-32 object-cover rounded-lg mb-2" onError={e => (e.currentTarget.style.display = 'none')} />
+                        {/* Toggle modo */}
+                        <div className="flex rounded-lg overflow-hidden border border-[#00AEEF] mb-3">
+                          <button
+                            onClick={() => setModoFoto('archivo')}
+                            className={`flex-1 py-1.5 text-xs font-semibold transition ${modoFoto === 'archivo' ? 'bg-[#00AEEF] text-white' : 'bg-white text-[#00AEEF]'}`}
+                          >
+                            📁 Subir desde PC
+                          </button>
+                          <button
+                            onClick={() => setModoFoto('url')}
+                            className={`flex-1 py-1.5 text-xs font-semibold transition ${modoFoto === 'url' ? 'bg-[#00AEEF] text-white' : 'bg-white text-[#00AEEF]'}`}
+                          >
+                            🔗 Pegar link
+                          </button>
+                        </div>
+
+                        {modoFoto === 'archivo' ? (
+                          <div>
+                            <label className="block w-full cursor-pointer">
+                              <div className="border-2 border-dashed border-[#00AEEF] rounded-lg p-4 text-center hover:bg-blue-50 transition">
+                                <p className="text-2xl mb-1">📸</p>
+                                <p className="text-sm font-semibold text-[#00AEEF]">Tocá para elegir una imagen</p>
+                                <p className="text-xs text-gray-400 mt-1">JPG, PNG, WEBP · máx 4MB</p>
+                              </div>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                disabled={subiendoArchivo}
+                                onChange={e => {
+                                  const file = e.target.files?.[0]
+                                  if (file) subirArchivo(p.id, file)
+                                }}
+                              />
+                            </label>
+                            {subiendoArchivo && (
+                              <div className="mt-2 flex items-center gap-2 text-sm text-[#00AEEF]">
+                                <div className="w-4 h-4 border-2 border-[#00AEEF] border-t-transparent rounded-full animate-spin" />
+                                Subiendo imagen...
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div>
+                            <input
+                              type="url"
+                              placeholder="https://... URL de la foto portada"
+                              value={nuevaUrl}
+                              onChange={e => setNuevaUrl(e.target.value)}
+                              className="w-full border rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-[#00AEEF]"
+                            />
+                            {nuevaUrl && (
+                              <img src={nuevaUrl} alt="preview" className="w-full h-32 object-cover rounded-lg mb-2" onError={e => (e.currentTarget.style.display = 'none')} />
+                            )}
+                            <button
+                              onClick={() => guardarFoto(p.id)}
+                              disabled={guardando || !nuevaUrl}
+                              className="w-full bg-[#00AEEF] text-white py-2 rounded-lg text-sm font-semibold disabled:opacity-50 mb-3"
+                            >
+                              {guardando ? 'Guardando...' : 'Guardar foto portada'}
+                            </button>
+                          </div>
                         )}
-                        <button
-                          onClick={() => guardarFoto(p.id)}
-                          disabled={guardando || !nuevaUrl}
-                          className="w-full bg-[#00AEEF] text-white py-2 rounded-lg text-sm font-semibold disabled:opacity-50 mb-3"
-                        >
-                          {guardando ? 'Guardando...' : 'Guardar foto portada'}
-                        </button>
 
                         {/* Galería múltiple */}
                         <div className="border-t pt-3">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="text-xs font-semibold text-gray-600">📸 Galería de fotos ({galerias[p.id]?.length || 0} fotos)</p>
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-semibold text-gray-600">📸 Galería ({galerias[p.id]?.length || 0} fotos)</p>
                             <button
                               onClick={() => {
                                 if (editandoGaleria === p.id) { setEditandoGaleria(null) }
@@ -489,12 +572,55 @@ export default function AdminPage() {
                           </div>
                           {editandoGaleria === p.id && (
                             <div>
-                              <p className="text-xs text-gray-400 mb-1">Una URL por línea</p>
+                              {/* Subir múltiples archivos a la galería */}
+                              <label className="block w-full cursor-pointer mb-2">
+                                <div className="border-2 border-dashed border-green-400 rounded-lg p-3 text-center hover:bg-green-50 transition">
+                                  <p className="text-sm font-semibold text-green-600">+ Subir fotos desde PC</p>
+                                  <p className="text-xs text-gray-400">Podés seleccionar varias a la vez</p>
+                                </div>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  multiple
+                                  className="hidden"
+                                  disabled={subiendoArchivo}
+                                  onChange={async e => {
+                                    const files = Array.from(e.target.files || [])
+                                    if (!files.length) return
+                                    setSubiendoArchivo(true)
+                                    const urls: string[] = []
+                                    for (const file of files) {
+                                      const fd = new FormData()
+                                      fd.append('file', file)
+                                      const res = await fetch('/api/admin/upload', {
+                                        method: 'POST',
+                                        headers: { 'x-admin-pass': pass },
+                                        body: fd,
+                                      })
+                                      const data = await res.json()
+                                      if (data.ok && data.url) urls.push(data.url)
+                                    }
+                                    const nuevas = [...(galerias[p.id] || []), ...urls]
+                                    setGalerias(g => ({ ...g, [p.id]: nuevas }))
+                                    setUrlsGaleria(nuevas.join('\n'))
+                                    setSubiendoArchivo(false)
+                                    setMensaje(`${urls.length} foto(s) subidas a la galería`)
+                                    setTimeout(() => setMensaje(''), 3000)
+                                  }}
+                                />
+                              </label>
+                              {subiendoArchivo && (
+                                <div className="flex items-center gap-2 text-xs text-green-600 mb-2">
+                                  <div className="w-3 h-3 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+                                  Subiendo fotos...
+                                </div>
+                              )}
+                              <p className="text-xs text-gray-400 mb-1">O pegá URLs (una por línea):</p>
                               <textarea
                                 rows={4}
                                 value={urlsGaleria}
                                 onChange={e => setUrlsGaleria(e.target.value)}
-                                placeholder={"https://foto1.jpg\nhttps://foto2.jpg\nhttps://foto3.jpg"}
+                                placeholder={"https://foto1.jpg\nhttps://foto2.jpg"}
                                 className="w-full border rounded-lg px-3 py-2 text-xs mb-2 focus:outline-none focus:ring-2 focus:ring-[#00AEEF] resize-none font-mono"
                               />
                               <button
