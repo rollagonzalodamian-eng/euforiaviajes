@@ -37,7 +37,7 @@ export default function AdminPage() {
   const [resenas, setResenas] = useState<any[]>([])
   const [nuevaResena, setNuevaResena] = useState({ nombre: '', ciudad: '', destino: '', texto: '', estrellas: 5, fecha: '' })
   const [guardandoResena, setGuardandoResena] = useState(false)
-  const [config, setConfig] = useState({ senaPorc: 15, tipoCambio: 1050, whatsapp: '542804321400', emailAdmin: 'adm@viajaconeuforia.com' })
+  const [config, setConfig] = useState({ senaPorc: 15, tipoCambio: 1400, whatsapp: '542804321400', emailAdmin: 'adm@viajaconeuforia.com' })
   const [guardandoConfig, setGuardandoConfig] = useState(false)
   const [mensajeConfig, setMensajeConfig] = useState('')
   const [oferta, setOferta] = useState({ activo: false, titulo: '', descripcion: '', linkId: '', fechaFin: '' })
@@ -73,6 +73,9 @@ export default function AdminPage() {
       setError('')
       cargarReservas()
       cargarCupones()
+      fetch('/api/admin/config').then(r => r.json()).then(cfg => {
+        if (cfg) setConfig(c => ({ ...c, ...cfg }))
+      }).catch(() => {})
     } else {
       setError('Contraseña incorrecta')
     }

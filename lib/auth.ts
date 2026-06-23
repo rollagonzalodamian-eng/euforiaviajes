@@ -50,6 +50,10 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
+  session: {
+    strategy: 'database',
+    maxAge: 365 * 24 * 60 * 60, // 1 año — el usuario no tiene que volver a hacer login
+  },
   pages: {
     signIn: '/login',
     verifyRequest: '/login/verificar',

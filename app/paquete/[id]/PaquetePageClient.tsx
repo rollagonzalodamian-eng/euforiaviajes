@@ -93,10 +93,8 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
     else alert('Mercado Pago no está activado aún. Contactanos por WhatsApp.')
   }
 
-  const cupos = Math.floor(Math.random() * 4) + 1
-
   const compartirWhatsApp = () => {
-    const url = `https://euforiaviajes.vercel.app/paquete/${p.id}`
+    const url = `https://app.viajaconeuforia.com/paquete/${p.id}`
     const texto = `¡Mirá este paquete de Euforia Viajes! ${p.titulo}${p.precioUSD ? ` - Desde USD ${parseFloat(p.precioUSD).toLocaleString()}` : ''} 👉 ${url}`
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank')
   }
@@ -135,7 +133,7 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
                 <p className="text-3xl font-black mt-3" style={{ color: '#00AEEF' }}>$ {parseInt(p.precioARS).toLocaleString('es-AR')} <span className="text-sm font-normal text-gray-400">/ persona</span></p>
               )}
               <div className="mt-2 inline-flex items-center gap-1 bg-red-50 text-red-600 text-xs font-bold px-3 py-1 rounded-full">
-                🔥 Solo quedan {cupos} lugar{cupos > 1 ? 'es' : ''}
+                🔥 ¡Últimos cupos disponibles!
               </div>
               <hr className="my-4" />
               <div className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{p.descripcion}</div>
