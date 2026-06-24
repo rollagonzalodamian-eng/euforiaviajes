@@ -251,36 +251,45 @@ export default function AdminPage() {
     setNuevaUrl('')
   }
 
+  function comprimirImagen(file: File, maxW = 1200, calidad = 0.82): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        const ratio = Math.min(1, maxW / img.width)
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.round(img.width * ratio)
+        canvas.height = Math.round(img.height * ratio)
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+        resolve(canvas.toDataURL('image/jpeg', calidad))
+      }
+      img.onerror = reject
+      img.src = url
+    })
+  }
+
   async function subirArchivo(id: string, file: File) {
     setSubiendoArchivo(true)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const res = await fetch('/api/admin/upload', {
+      const dataUrl = await comprimirImagen(file)
+      const res = await fetch('/api/admin/fotos', {
         method: 'POST',
-        headers: { 'x-admin-pass': pass },
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pass, id, url: dataUrl }),
       })
-      const data = await res.json()
-      if (data.ok && data.url) {
-        setNuevaUrl(data.url)
-        // Guardar directamente
-        await fetch('/api/admin/fotos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pass, id, url: data.url }),
-        })
-        setFotos(f => ({ ...f, [id]: data.url }))
-        setMensaje('Foto subida y guardada correctamente')
+      if (res.ok) {
+        setFotos(f => ({ ...f, [id]: dataUrl }))
+        setMensaje('Foto guardada correctamente')
         setTimeout(() => setMensaje(''), 3000)
         setEditando(null)
         setNuevaUrl('')
       } else {
-        setMensaje('Error al subir la imagen: ' + (data.error || 'desconocido'))
+        setMensaje('Error al guardar la foto')
         setTimeout(() => setMensaje(''), 4000)
       }
     } catch {
-      setMensaje('Error de conexión al subir la imagen')
+      setMensaje('Error al procesar la imagen')
       setTimeout(() => setMensaje(''), 4000)
     }
     setSubiendoArchivo(false)
@@ -593,15 +602,8 @@ export default function AdminPage() {
                                     setSubiendoArchivo(true)
                                     const urls: string[] = []
                                     for (const file of files) {
-                                      const fd = new FormData()
-                                      fd.append('file', file)
-                                      const res = await fetch('/api/admin/upload', {
-                                        method: 'POST',
-                                        headers: { 'x-admin-pass': pass },
-                                        body: fd,
-                                      })
-                                      const data = await res.json()
-                                      if (data.ok && data.url) urls.push(data.url)
+                                      const dataUrl = await comprimirImagen(file)
+                                      urls.push(dataUrl)
                                     }
                                     const nuevas = [...(galerias[p.id] || []), ...urls]
                                     setGalerias(g => ({ ...g, [p.id]: nuevas }))
