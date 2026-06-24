@@ -133,9 +133,8 @@ export async function GET() {
       }
 
       const merged = sync.map(p => {
-        // Solo usar foto subida manualmente desde el admin
         const fotoCustom = fotosBase64[p.id] || fotosBulk[p.id]
-        return { ...p, foto: fotoCustom || '' }
+        return { ...p, foto: fotoCustom || p.foto || '' }
       })
       return NextResponse.json(merged)
     }
