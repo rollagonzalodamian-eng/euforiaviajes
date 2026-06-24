@@ -140,6 +140,7 @@ export async function GET() {
         if (fotoFinal && fotoFinal.includes('viajaconeuforia.com') && !fotoCustom) {
           fotoFinal = `/api/img?url=${encodeURIComponent(fotoFinal)}`
         }
+        if (!fotoFinal) fotoFinal = getFotoFallback(p)
         return { ...p, foto: fotoFinal }
       })
       return NextResponse.json(merged)
