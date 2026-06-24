@@ -51,17 +51,21 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   session: {
-    strategy: 'database',
-    maxAge: 365 * 24 * 60 * 60, // 1 año — el usuario no tiene que volver a hacer login
+    strategy: 'jwt',
+    maxAge: 365 * 24 * 60 * 60, // 1 año en cookie
   },
   pages: {
     signIn: '/login',
     verifyRequest: '/login/verificar',
   },
   callbacks: {
-    async session({ session, user }) {
+    async jwt({ token, user }) {
+      if (user) token.id = user.id
+      return token
+    },
+    async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = user.id
+        (session.user as any).id = token.id
       }
       return session
     },
