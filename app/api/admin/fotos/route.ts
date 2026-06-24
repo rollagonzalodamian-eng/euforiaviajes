@@ -7,8 +7,22 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({}, { status: 401 })
   }
   try {
-    const fotos = await redis.get<Record<string, string>>('custom_fotos') || {}
-    return NextResponse.json(fotos)
+    const [fotosBulk, fotosIds] = await Promise.all([
+      redis.get<Record<string, string>>('custom_fotos').catch(() => ({})),
+      redis.smembers('fotos_custom_ids').catch(() => []),
+    ])
+    const resultado: Record<string, string> = { ...(fotosBulk || {}) }
+
+    // Cargar fotos base64 individuales
+    if (fotosIds && fotosIds.length > 0) {
+      const keys = (fotosIds as string[]).map((id: string) => `foto:${id}`)
+      const vals = await redis.mget<string[]>(...keys).catch(() => [])
+      ;(fotosIds as string[]).forEach((id: string, i: number) => {
+        if (vals[i]) resultado[id] = vals[i]
+      })
+    }
+
+    return NextResponse.json(resultado)
   } catch {
     return NextResponse.json({})
   }
