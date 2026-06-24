@@ -107,15 +107,32 @@ export async function GET() {
   try {
     const sync = await redis.get<any[]>('paquetes_sync')
     if (sync && sync.length > 0) {
-      const merged = sync.map(p => ({
-        ...p,
-        foto: (() => {
-          if (p.foto?.includes('unsplash')) return p.foto
-          const sf = fotosPorId[p.id]
-          if (sf?.includes('unsplash')) return sf
-          return getFotoFallback(p)
-        })(),
-      }))
+      // Leer fotos custom: URLs normales (objeto bulk) + base64 individuales
+      const [customFotos, fotosIds] = await Promise.all([
+        redis.get<Record<string, string>>('custom_fotos').catch(() => ({})),
+        redis.smembers('fotos_custom_ids').catch(() => []),
+      ])
+      const fotosBulk: Record<string, string> = customFotos || {}
+
+      // Leer claves individuales (foto:{id}) para los que tienen base64
+      let fotosBase64: Record<string, string> = {}
+      if (fotosIds && fotosIds.length > 0) {
+        const keys = (fotosIds as string[]).map((id: string) => `foto:${id}`)
+        const vals = await redis.mget<string[]>(...keys).catch(() => [])
+        ;(fotosIds as string[]).forEach((id: string, i: number) => {
+          if (vals[i]) fotosBase64[id] = vals[i]
+        })
+      }
+
+      const merged = sync.map(p => {
+        // Prioridad: base64 subida > URL custom > foto de AppSheet (si es unsplash) > fallback
+        const fotoCustom = fotosBase64[p.id] || fotosBulk[p.id]
+        if (fotoCustom) return { ...p, foto: fotoCustom }
+        if (p.foto?.includes('unsplash')) return { ...p }
+        const sf = fotosPorId[p.id]
+        if (sf?.includes('unsplash')) return { ...p, foto: sf }
+        return { ...p, foto: getFotoFallback(p) }
+      })
       return NextResponse.json(merged)
     }
   } catch {}

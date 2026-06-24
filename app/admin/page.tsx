@@ -251,46 +251,60 @@ export default function AdminPage() {
     setNuevaUrl('')
   }
 
-  function comprimirImagen(file: File, maxW = 1200, calidad = 0.82): Promise<string> {
+  function comprimirImagen(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const img = new Image()
-      const url = URL.createObjectURL(file)
+      const objectUrl = URL.createObjectURL(file)
       img.onload = () => {
-        URL.revokeObjectURL(url)
+        URL.revokeObjectURL(objectUrl)
+        // Máximo 900px de ancho, calidad 72% — queda ~80-150KB como base64
+        const maxW = 900
         const ratio = Math.min(1, maxW / img.width)
+        const w = Math.round(img.width * ratio)
+        const h = Math.round(img.height * ratio)
         const canvas = document.createElement('canvas')
-        canvas.width = Math.round(img.width * ratio)
-        canvas.height = Math.round(img.height * ratio)
-        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
-        resolve(canvas.toDataURL('image/jpeg', calidad))
+        canvas.width = w
+        canvas.height = h
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return reject(new Error('Canvas no disponible'))
+        ctx.drawImage(img, 0, 0, w, h)
+        resolve(canvas.toDataURL('image/jpeg', 0.72))
       }
-      img.onerror = reject
-      img.src = url
+      img.onerror = () => reject(new Error('No se pudo leer la imagen'))
+      img.src = objectUrl
     })
   }
 
   async function subirArchivo(id: string, file: File) {
     setSubiendoArchivo(true)
+    setMensaje('')
     try {
       const dataUrl = await comprimirImagen(file)
+      // Verificar tamaño (Redis tiene límite ~1MB por valor)
+      if (dataUrl.length > 800000) {
+        setError('La imagen es demasiado grande. Usá una foto más pequeña.')
+        setSubiendoArchivo(false)
+        return
+      }
       const res = await fetch('/api/admin/fotos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pass, id, url: dataUrl }),
       })
-      if (res.ok) {
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.ok) {
         setFotos(f => ({ ...f, [id]: dataUrl }))
-        setMensaje('Foto guardada correctamente')
+        setMensaje('✅ Foto guardada correctamente')
         setTimeout(() => setMensaje(''), 3000)
         setEditando(null)
         setNuevaUrl('')
       } else {
-        setMensaje('Error al guardar la foto')
-        setTimeout(() => setMensaje(''), 4000)
+        setError('Error al guardar: ' + (data.error || `HTTP ${res.status}`))
+        setTimeout(() => setError(''), 5000)
       }
-    } catch {
-      setMensaje('Error al procesar la imagen')
-      setTimeout(() => setMensaje(''), 4000)
+    } catch (e: any) {
+      setError('Error: ' + e.message)
+      setTimeout(() => setError(''), 5000)
     }
     setSubiendoArchivo(false)
   }
@@ -371,7 +385,12 @@ export default function AdminPage() {
       <div className="p-4 max-w-4xl mx-auto">
         {mensaje && (
           <div className="mb-4 bg-green-100 text-green-700 px-4 py-3 rounded-lg text-sm">
-            ✓ {mensaje}
+            {mensaje}
+          </div>
+        )}
+        {error && (
+          <div className="mb-4 bg-red-100 text-red-700 px-4 py-3 rounded-lg text-sm">
+            ❌ {error}
           </div>
         )}
 
