@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { redis } from '@/lib/redis'
 import paquetesData from '@/data/paquetes.json'
 
+export const dynamic = 'force-dynamic'
+
 const fotosPorId: Record<string, string> = {}
 for (const p of paquetesData as any[]) {
   if (p.id && p.foto) fotosPorId[p.id] = p.foto
@@ -32,7 +34,6 @@ const FOTOS_DESTINO: Record<string, string> = {
   'avistaje': 'https://images.unsplash.com/photo-1568430462989-44163eb1752f?w=800&q=80&fit=crop',
   'punta tombo': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop',
   'velero': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop',
-  'buceo': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop',
   'trelew': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop',
   'puerto madryn': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop',
   'peninsula': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop',
@@ -134,7 +135,12 @@ export async function GET() {
 
       const merged = sync.map(p => {
         const fotoCustom = fotosBase64[p.id] || fotosBulk[p.id]
-        return { ...p, foto: fotoCustom || p.foto || '' }
+        // Si la foto viene de WordPress (viajaconeuforia.com), la proxeamos para evitar hotlink blocking
+        let fotoFinal = fotoCustom || p.foto || ''
+        if (fotoFinal && fotoFinal.includes('viajaconeuforia.com') && !fotoCustom) {
+          fotoFinal = `/api/img?url=${encodeURIComponent(fotoFinal)}`
+        }
+        return { ...p, foto: fotoFinal }
       })
       return NextResponse.json(merged)
     }
