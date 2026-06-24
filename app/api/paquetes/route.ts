@@ -133,16 +133,9 @@ export async function GET() {
       }
 
       const merged = sync.map(p => {
-        // 1. Foto subida manualmente desde el admin (máxima prioridad)
+        // Solo usar foto subida manualmente desde el admin
         const fotoCustom = fotosBase64[p.id] || fotosBulk[p.id]
-        if (fotoCustom) return { ...p, foto: fotoCustom }
-        // 2. Foto de AppSheet si existe (ImgFallback en la UI maneja si no carga)
-        if (p.foto) return { ...p }
-        // 3. Foto del JSON estático
-        const sf = fotosPorId[p.id]
-        if (sf) return { ...p, foto: sf }
-        // 4. Fallback por destino/título
-        return { ...p, foto: getFotoFallback(p) }
+        return { ...p, foto: fotoCustom || '' }
       })
       return NextResponse.json(merged)
     }
