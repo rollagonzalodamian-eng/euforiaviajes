@@ -27,10 +27,16 @@ const FOTOS_DESTINO: Record<string, string> = {
   'iguazú': 'https://images.unsplash.com/photo-1538703012804-b74999aa11b9?w=800&q=80&fit=crop',
   'misiones': 'https://images.unsplash.com/photo-1538703012804-b74999aa11b9?w=800&q=80&fit=crop',
   'posadas': 'https://images.unsplash.com/photo-1538703012804-b74999aa11b9?w=800&q=80&fit=crop',
-  'trelew': 'https://images.unsplash.com/photo-1634931405449-d73497301fe4?w=800&q=80&fit=crop',
-  'puerto madryn': 'https://images.unsplash.com/photo-1634931405449-d73497301fe4?w=800&q=80&fit=crop',
-  'peninsula': 'https://images.unsplash.com/photo-1634931405449-d73497301fe4?w=800&q=80&fit=crop',
-  'rawson': 'https://images.unsplash.com/photo-1634931405449-d73497301fe4?w=800&q=80&fit=crop',
+  'ballenas': 'https://images.unsplash.com/photo-1568430462989-44163eb1752f?w=800&q=80&fit=crop',
+  'delfines': 'https://images.unsplash.com/photo-1568430462989-44163eb1752f?w=800&q=80&fit=crop',
+  'avistaje': 'https://images.unsplash.com/photo-1568430462989-44163eb1752f?w=800&q=80&fit=crop',
+  'punta tombo': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop',
+  'velero': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop',
+  'buceo': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop',
+  'trelew': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop',
+  'puerto madryn': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop',
+  'peninsula': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop',
+  'rawson': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop',
   'cordoba': 'https://images.unsplash.com/photo-1632885565031-bf3412fd486d?w=800&q=80&fit=crop',
   'carlos paz': 'https://images.unsplash.com/photo-1632885565031-bf3412fd486d?w=800&q=80&fit=crop',
   'villa carlos paz': 'https://images.unsplash.com/photo-1632885565031-bf3412fd486d?w=800&q=80&fit=crop',
@@ -101,7 +107,8 @@ function getFotoFallback(p: any): string {
   if (texto.includes('nacional') || texto.includes('argentin')) {
     return 'https://images.unsplash.com/photo-1589462437902-d4a6c7366c55?w=800&q=80&fit=crop'
   }
-  return 'https://images.unsplash.com/photo-1488085061387-422e29b40080?w=800&q=80&fit=crop'
+  // Fallback genérico: playa/mar (no ventana de avión)
+  return 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop'
 }
 
 export async function GET() {
@@ -126,12 +133,15 @@ export async function GET() {
       }
 
       const merged = sync.map(p => {
-        // Prioridad: base64 subida > URL custom > foto de AppSheet (si es unsplash) > fallback
+        // 1. Foto subida manualmente desde el admin (máxima prioridad)
         const fotoCustom = fotosBase64[p.id] || fotosBulk[p.id]
         if (fotoCustom) return { ...p, foto: fotoCustom }
-        if (p.foto?.includes('unsplash')) return { ...p }
+        // 2. Foto de AppSheet si existe (ImgFallback en la UI maneja si no carga)
+        if (p.foto) return { ...p }
+        // 3. Foto del JSON estático
         const sf = fotosPorId[p.id]
-        if (sf?.includes('unsplash')) return { ...p, foto: sf }
+        if (sf) return { ...p, foto: sf }
+        // 4. Fallback por destino/título
         return { ...p, foto: getFotoFallback(p) }
       })
       return NextResponse.json(merged)

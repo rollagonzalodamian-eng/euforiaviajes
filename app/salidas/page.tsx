@@ -6,8 +6,13 @@ import ImgFallback from '@/components/ImgFallback'
 
 function formatFecha(f: string) {
   if (!f) return ''
-  const [d, m, y] = f.split('/')
   const meses = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+  // Soporta DD/MM/YYYY y YYYY-MM-DD (formato AppSheet)
+  if (f.includes('-')) {
+    const [y, m, d] = f.split('-')
+    return `${d} ${meses[parseInt(m)]} ${y}`
+  }
+  const [d, m, y] = f.split('/')
   return `${d} ${meses[parseInt(m)]} ${y}`
 }
 
