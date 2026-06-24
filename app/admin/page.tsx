@@ -277,34 +277,40 @@ export default function AdminPage() {
 
   async function subirArchivo(id: string, file: File) {
     setSubiendoArchivo(true)
-    setMensaje('')
+    setError('')
+    setMensaje('Procesando imagen...')
     try {
       const dataUrl = await comprimirImagen(file)
-      // Verificar tamaño (Redis tiene límite ~1MB por valor)
-      if (dataUrl.length > 800000) {
-        setError('La imagen es demasiado grande. Usá una foto más pequeña.')
+      const kb = Math.round(dataUrl.length / 1024)
+      setMensaje(`Imagen comprimida (${kb}KB), guardando...`)
+
+      if (dataUrl.length > 900000) {
+        setError(`Imagen muy grande (${kb}KB). Necesita ser menor a 700KB. Elegí una foto más chica.`)
+        setMensaje('')
         setSubiendoArchivo(false)
         return
       }
+
       const res = await fetch('/api/admin/fotos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pass, id, url: dataUrl }),
       })
-      const data = await res.json().catch(() => ({}))
+      const data = await res.json().catch(() => ({ ok: false, error: 'Respuesta inválida del servidor' }))
+
       if (res.ok && data.ok) {
         setFotos(f => ({ ...f, [id]: dataUrl }))
-        setMensaje('✅ Foto guardada correctamente')
+        setMensaje('✅ Foto guardada')
         setTimeout(() => setMensaje(''), 3000)
         setEditando(null)
         setNuevaUrl('')
       } else {
-        setError('Error al guardar: ' + (data.error || `HTTP ${res.status}`))
-        setTimeout(() => setError(''), 5000)
+        setError(`Error ${res.status}: ${data.error || 'No se pudo guardar'}`)
+        setMensaje('')
       }
     } catch (e: any) {
-      setError('Error: ' + e.message)
-      setTimeout(() => setError(''), 5000)
+      setError('Error: ' + (e.message || 'desconocido'))
+      setMensaje('')
     }
     setSubiendoArchivo(false)
   }
@@ -558,10 +564,15 @@ export default function AdminPage() {
                                 }}
                               />
                             </label>
-                            {subiendoArchivo && (
-                              <div className="mt-2 flex items-center gap-2 text-sm text-[#00AEEF]">
-                                <div className="w-4 h-4 border-2 border-[#00AEEF] border-t-transparent rounded-full animate-spin" />
-                                Subiendo imagen...
+                            {(subiendoArchivo || mensaje) && (
+                              <div className="mt-2 flex items-center gap-2 text-sm text-[#00AEEF] bg-blue-50 px-3 py-2 rounded-lg">
+                                {subiendoArchivo && <div className="w-4 h-4 border-2 border-[#00AEEF] border-t-transparent rounded-full animate-spin shrink-0" />}
+                                <span>{mensaje || 'Procesando...'}</span>
+                              </div>
+                            )}
+                            {error && (
+                              <div className="mt-2 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+                                ❌ {error}
                               </div>
                             )}
                           </div>
