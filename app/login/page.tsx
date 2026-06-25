@@ -1,41 +1,13 @@
 'use client'
 import { signIn } from 'next-auth/react'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('rollagonzalodamian@gmail.com')
-  const [password, setPassword] = useState('')
-  const [modo, setModo] = useState<'password' | 'email'>('password')
-  const [cargando, setCargando] = useState(false)
-  const [enviado, setEnviado] = useState(false)
-  const [error, setError] = useState('')
-  const router = useRouter()
+  const [cargandoGoogle, setCargandoGoogle] = useState(false)
 
-  const loginConPassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setCargando(true)
-    setError('')
-    const res = await signIn('credentials', { email, password, redirect: false, callbackUrl: '/mi-cuenta' })
-    setCargando(false)
-    if (res?.ok) {
-      router.push('/mi-cuenta')
-    } else {
-      setError('Email o contraseña incorrectos.')
-    }
-  }
-
-  const loginConEmail = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setCargando(true)
-    setError('')
-    const res = await signIn('email', { email, redirect: false, callbackUrl: '/mi-cuenta' })
-    setCargando(false)
-    if (res?.error) {
-      setError('Hubo un error. Intentá de nuevo.')
-    } else {
-      setEnviado(true)
-    }
+  const loginGoogle = async () => {
+    setCargandoGoogle(true)
+    await signIn('google', { callbackUrl: '/mi-cuenta' })
   }
 
   return (
@@ -45,88 +17,21 @@ export default function LoginPage() {
           <span className="text-3xl">✈️</span>
         </div>
         <h1 className="text-2xl font-black text-gray-800 mb-1">Ingresá a tu cuenta</h1>
+        <p className="text-gray-400 text-sm mb-8">Entrá con tu cuenta de Google, rápido y seguro.</p>
 
-        {enviado ? (
-          <div className="mt-4">
-            <div className="text-5xl mb-4">📬</div>
-            <p className="font-bold text-gray-800 text-lg mb-2">¡Revisá tu email!</p>
-            <p className="text-gray-500 text-sm">
-              Te mandamos un link a <strong>{email}</strong>.<br />
-              Hacé clic en ese link para ingresar.
-            </p>
-            <p className="text-xs text-gray-400 mt-4">¿No llegó? Revisá la carpeta de spam.</p>
-          </div>
-        ) : (
-          <>
-            {/* Tabs */}
-            <div className="flex rounded-xl overflow-hidden border border-gray-200 mb-6 mt-4">
-              <button
-                onClick={() => { setModo('password'); setError('') }}
-                className={`flex-1 py-2 text-sm font-bold transition ${modo === 'password' ? 'text-white' : 'text-gray-500 bg-gray-50'}`}
-                style={modo === 'password' ? { backgroundColor: '#00AEEF' } : {}}
-              >
-                🔑 Contraseña
-              </button>
-              <button
-                onClick={() => { setModo('email'); setError('') }}
-                className={`flex-1 py-2 text-sm font-bold transition ${modo === 'email' ? 'text-white' : 'text-gray-500 bg-gray-50'}`}
-                style={modo === 'email' ? { backgroundColor: '#00AEEF' } : {}}
-              >
-                📧 Link por email
-              </button>
-            </div>
-
-            {modo === 'password' ? (
-              <form onSubmit={loginConPassword}>
-                <input
-                  type="email"
-                  required
-                  placeholder="tu@email.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#00AEEF] mb-3"
-                />
-                <input
-                  type="password"
-                  required
-                  placeholder="Contraseña"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#00AEEF] mb-3"
-                />
-                {error && <p className="text-red-500 text-xs mb-3">{error}</p>}
-                <button
-                  type="submit"
-                  disabled={cargando}
-                  className="w-full text-white font-bold py-3 rounded-xl transition disabled:opacity-60"
-                  style={{ backgroundColor: '#00AEEF' }}
-                >
-                  {cargando ? 'Ingresando...' : 'Ingresar'}
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={loginConEmail}>
-                <input
-                  type="email"
-                  required
-                  placeholder="tu@email.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#00AEEF] mb-3"
-                />
-                {error && <p className="text-red-500 text-xs mb-3">{error}</p>}
-                <button
-                  type="submit"
-                  disabled={cargando}
-                  className="w-full text-white font-bold py-3 rounded-xl transition disabled:opacity-60"
-                  style={{ backgroundColor: '#00AEEF' }}
-                >
-                  {cargando ? 'Enviando...' : 'Enviar link de acceso'}
-                </button>
-              </form>
-            )}
-          </>
-        )}
+        <button
+          onClick={loginGoogle}
+          disabled={cargandoGoogle}
+          className="w-full flex items-center justify-center gap-3 border-2 border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition disabled:opacity-60"
+        >
+          <svg width="20" height="20" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+          {cargandoGoogle ? 'Redirigiendo...' : 'Continuar con Google'}
+        </button>
       </div>
     </div>
   )

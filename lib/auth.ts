@@ -1,5 +1,6 @@
 import EmailProvider from 'next-auth/providers/email'
 import CredentialsProvider from 'next-auth/providers/credentials'
+import GoogleProvider from 'next-auth/providers/google'
 import { UpstashRedisAdapter } from '@next-auth/upstash-redis-adapter'
 import { Redis } from '@upstash/redis'
 import type { NextAuthOptions } from 'next-auth'
@@ -12,6 +13,10 @@ const redis = new Redis({
 export const authOptions: NextAuthOptions = {
   adapter: UpstashRedisAdapter(redis),
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
     CredentialsProvider({
       name: 'password',
       credentials: {
