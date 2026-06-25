@@ -21,33 +21,32 @@ async function extraerFotoDeWooCommerce(url: string): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
-  const { pass, limite = 50 } = await req.json()
+  const { pass } = await req.json()
   if (pass !== process.env.ADMIN_PASS) return NextResponse.json({ ok: false }, { status: 401 })
 
   try {
     const paquetes = await redis.get<any[]>('paquetes_sync') || []
-    const sinFoto = paquetes.filter(p => !p.foto && p.linkWeb).slice(0, limite)
+    const sinFoto = paquetes.filter(p => !p.foto && p.linkWeb)
 
     if (sinFoto.length === 0) return NextResponse.json({ ok: true, actualizados: 0, mensaje: 'Todos tienen foto' })
 
-    let actualizados = 0
     const actualizaciones: Record<string, string> = {}
 
-    await Promise.all(sinFoto.map(async (p) => {
-      const foto = await extraerFotoDeWooCommerce(p.linkWeb)
-      if (foto) {
-        actualizaciones[p.id] = foto
-        actualizados++
-      }
-    }))
+    // Procesar en lotes de 10 para no exceder timeout de Vercel
+    for (let i = 0; i < sinFoto.length; i += 10) {
+      const lote = sinFoto.slice(i, i + 10)
+      await Promise.all(lote.map(async (p) => {
+        const foto = await extraerFotoDeWooCommerce(p.linkWeb)
+        if (foto) actualizaciones[p.id] = foto
+      }))
+    }
 
-    // Actualizar paquetes en Redis
     const paquetesActualizados = paquetes.map(p =>
       actualizaciones[p.id] ? { ...p, foto: actualizaciones[p.id] } : p
     )
     await redis.set('paquetes_sync', paquetesActualizados)
 
-    return NextResponse.json({ ok: true, actualizados, total: sinFoto.length })
+    return NextResponse.json({ ok: true, actualizados: Object.keys(actualizaciones).length, total: sinFoto.length })
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e.message })
   }
