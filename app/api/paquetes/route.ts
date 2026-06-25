@@ -134,13 +134,9 @@ export async function GET() {
       }
 
       const merged = sync.filter((p: any) => p.linkWeb).map(p => {
+        // Prioridad: foto subida manualmente → fallback por destino (ignoramos fotos scrapeadas de WooCommerce)
         const fotoCustom = fotosBase64[p.id] || fotosBulk[p.id]
-        // Si la foto viene de WordPress (viajaconeuforia.com), la proxeamos para evitar hotlink blocking
-        let fotoFinal = fotoCustom || p.foto || ''
-        if (fotoFinal && fotoFinal.includes('viajaconeuforia.com') && !fotoCustom) {
-          fotoFinal = `/api/img?url=${encodeURIComponent(fotoFinal)}`
-        }
-        if (!fotoFinal) fotoFinal = getFotoFallback(p)
+        const fotoFinal = fotoCustom || getFotoFallback(p)
         return { ...p, foto: fotoFinal }
       })
       return NextResponse.json(merged)
