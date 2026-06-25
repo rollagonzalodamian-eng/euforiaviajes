@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { redis } from '@/lib/redis'
 
 export async function POST(req: NextRequest) {
   const { paqueteId, paqueteTitulo, precioUSD, cantPasajeros, nombre, email } = await req.json()
@@ -8,7 +9,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Mercado Pago no configurado aún' }, { status: 503 })
   }
 
-  const tipoCambio = 1050
+  const config = await redis.get<any>('config').catch(() => null)
+  const tipoCambio = config?.tipoCambio ? Number(config.tipoCambio) : 1400
   const senaPorc = 15
   const precioTotal = parseFloat(precioUSD) * cantPasajeros * tipoCambio
   const montoSena = Math.round(precioTotal * senaPorc / 100)
