@@ -106,10 +106,15 @@ export default function SalidasPage() {
                 </div>
 
                 <div className="p-4 flex flex-col flex-1">
+                  {p.fecha && (
+                    <div className="inline-flex items-center gap-1 text-white text-xs font-bold px-2.5 py-1 rounded-lg mb-2 w-fit"
+                      style={{ backgroundColor: '#00AEEF' }}>
+                      📅 {formatFecha(p.fecha)}
+                    </div>
+                  )}
                   <h3 className="font-bold text-gray-800 text-sm leading-snug line-clamp-2">{p.titulo}</h3>
 
                   <div className="flex gap-3 mt-2 text-xs text-gray-500 flex-wrap">
-                    {p.fecha && <span>📅 {formatFecha(p.fecha)}</span>}
                     {p.noches && <span>🌙 {p.noches} noches</span>}
                     {p.origen && <span>📍 Desde {p.origen}</span>}
                     {p.transporte && <span>{p.transporte === 'Aéreo' ? '✈️' : '🚌'} {p.transporte}</span>}
