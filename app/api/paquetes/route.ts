@@ -133,7 +133,7 @@ export async function GET() {
         })
       }
 
-      const merged = sync.map(p => {
+      const merged = sync.filter((p: any) => p.linkWeb).map(p => {
         const fotoCustom = fotosBase64[p.id] || fotosBulk[p.id]
         // Si la foto viene de WordPress (viajaconeuforia.com), la proxeamos para evitar hotlink blocking
         let fotoFinal = fotoCustom || p.foto || ''
