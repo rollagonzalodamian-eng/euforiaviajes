@@ -5,7 +5,7 @@ export const DEFAULT_CONFIG = {
   senaPorc: 15,
   whatsapp: '542804321400',
   emailAdmin: 'adm@viajaconeuforia.com',
-  tipoCambio: 1400,
+  tipoCambio: 1500,
   mensajeBienvenida: 'Encontrá los mejores paquetes de viaje con Euforia Viajes',
 }
 
