@@ -1,4 +1,5 @@
 import EmailProvider from 'next-auth/providers/email'
+import CredentialsProvider from 'next-auth/providers/credentials'
 import { UpstashRedisAdapter } from '@next-auth/upstash-redis-adapter'
 import { Redis } from '@upstash/redis'
 import type { NextAuthOptions } from 'next-auth'
@@ -11,6 +12,22 @@ const redis = new Redis({
 export const authOptions: NextAuthOptions = {
   adapter: UpstashRedisAdapter(redis),
   providers: [
+    CredentialsProvider({
+      name: 'password',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Contraseña', type: 'password' },
+      },
+      async authorize(credentials) {
+        const adminEmail = process.env.ADMIN_EMAIL || 'rollagonzalodamian@gmail.com'
+        const adminPassword = process.env.ADMIN_PASSWORD
+        if (!adminPassword) return null
+        if (credentials?.email === adminEmail && credentials?.password === adminPassword) {
+          return { id: '1', email: adminEmail, name: 'Admin' }
+        }
+        return null
+      },
+    }),
     EmailProvider({
       server: {
         host: 'smtp.resend.com',
