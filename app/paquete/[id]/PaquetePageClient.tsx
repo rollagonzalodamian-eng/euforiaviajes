@@ -9,6 +9,25 @@ import GaleriaFotos from '@/components/GaleriaFotos'
 
 const SENA_PORC = 15
 
+function formatFecha(f: string) {
+  if (!f) return ''
+  const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+  let d: number, m: number, y: number
+  if (/^\d{4}-\d{2}-\d{2}/.test(f)) {
+    const parts = f.slice(0, 10).split('-')
+    y = parseInt(parts[0]); m = parseInt(parts[1]); d = parseInt(parts[2])
+  } else if (f.includes('/')) {
+    const parts = f.split('/')
+    const a = parseInt(parts[0]), b = parseInt(parts[1]), c = parseInt(parts[2])
+    if (a > 31) { y = a; m = b; d = c }
+    else if (a > 12) { d = a; m = b; y = c }
+    else if (b > 12) { m = a; d = b; y = c }
+    else { d = a; m = b; y = c }
+  } else return f
+  if (!meses[m - 1] || isNaN(d) || isNaN(y)) return f
+  return `${d} ${meses[m - 1]} ${y}`
+}
+
 export default function PaquetePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const [p, setP] = useState<Paquete | undefined>(getPaquete(id))
@@ -119,7 +138,7 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
               <div className="flex gap-4 text-sm text-gray-500 mt-2">
                 {p.noches && <span>🌙 {p.noches} noches</span>}
                 {p.origen && <span>📍 Desde {p.origen}</span>}
-                {p.fecha && <span>📅 {p.fecha}</span>}
+                {p.fecha && <span>📅 {formatFecha(p.fecha)}</span>}
               </div>
               {p.precioUSD && (
                 <div className="mt-3">

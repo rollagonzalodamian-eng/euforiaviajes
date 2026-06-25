@@ -6,14 +6,22 @@ import ImgFallback from '@/components/ImgFallback'
 
 function formatFecha(f: string) {
   if (!f) return ''
-  const meses = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-  // Soporta DD/MM/YYYY y YYYY-MM-DD (formato AppSheet)
-  if (f.includes('-')) {
-    const [y, m, d] = f.split('-')
-    return `${d} ${meses[parseInt(m)]} ${y}`
-  }
-  const [d, m, y] = f.split('/')
-  return `${d} ${meses[parseInt(m)]} ${y}`
+  const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+  let d: number, m: number, y: number
+  if (/^\d{4}-\d{2}-\d{2}/.test(f)) {
+    // YYYY-MM-DD
+    const parts = f.slice(0, 10).split('-')
+    y = parseInt(parts[0]); m = parseInt(parts[1]); d = parseInt(parts[2])
+  } else if (f.includes('/')) {
+    const parts = f.split('/')
+    const a = parseInt(parts[0]), b = parseInt(parts[1]), c = parseInt(parts[2])
+    if (a > 31) { y = a; m = b; d = c }         // YYYY/MM/DD
+    else if (a > 12) { d = a; m = b; y = c }     // DD/MM/YYYY (día > 12, inequívoco)
+    else if (b > 12) { m = a; d = b; y = c }     // MM/DD/YYYY (mes > 12 imposible)
+    else { d = a; m = b; y = c }                 // DD/MM/YYYY por defecto
+  } else return f
+  if (!meses[m - 1] || isNaN(d) || isNaN(y)) return f
+  return `${d} ${meses[m - 1]} ${y}`
 }
 
 export default function SalidasPage() {
