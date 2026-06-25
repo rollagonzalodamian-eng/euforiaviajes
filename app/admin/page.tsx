@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import paquetesData from '@/data/paquetes.json'
 
 type Paquete = {
   id: string
@@ -26,10 +25,9 @@ type Reserva = {
   mensaje?: string
 }
 
-const paquetes = paquetesData as unknown as Paquete[]
-
 export default function AdminPage() {
   const [pass, setPass] = useState('')
+  const [paquetes, setPaquetes] = useState<Paquete[]>([])
   const [autenticado, setAutenticado] = useState(false)
   const [tab, setTab] = useState<'fotos' | 'reservas' | 'stats' | 'config' | 'resenas' | 'cupones' | 'usuarios'>('stats')
   const [usuarios, setUsuarios] = useState<any[]>([])
@@ -73,6 +71,7 @@ export default function AdminPage() {
       setError('')
       cargarReservas()
       cargarCupones()
+      fetch('/api/paquetes').then(r => r.json()).then(data => setPaquetes(data)).catch(() => {})
       fetch('/api/admin/config').then(r => r.json()).then(cfg => {
         if (cfg) setConfig(c => ({ ...c, ...cfg }))
       }).catch(() => {})
