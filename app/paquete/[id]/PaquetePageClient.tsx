@@ -82,7 +82,7 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
     const res = await fetch('/api/prereserva', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, paqueteId: p.id, paqueteTitulo: p.titulo }),
+      body: JSON.stringify({ ...form, paqueteId: p.id, paqueteTitulo: p.titulo, precioUSD: p.precioUSD, precioARS: p.precioARS, fecha: p.fecha }),
     })
     if (res.ok) router.push('/confirmacion')
     else setEstado('error')
@@ -172,10 +172,28 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
             <h2 className="font-bold text-gray-800 text-lg mb-1">📋 Pre-reservar</h2>
             <p className="text-xs text-gray-400 mb-4">Completá el formulario y nos comunicamos con vos para confirmar.</p>
 
-            {senaARS > 0 && (
-              <div className="bg-[#E0F6FF] rounded-xl p-3 mb-4 text-sm">
-                <p className="font-bold text-[#0090C5]">Seña {SENA_PORC}%: <span className="text-[#00AEEF]">$ {senaARS.toLocaleString('es-AR')}</span></p>
-                <p className="text-xs text-[#0090C5] mt-0.5">por {form.cantPasajeros} pasajero{parseInt(form.cantPasajeros) > 1 ? 's' : ''} · abonás ahora y el resto al viajar</p>
+            {precioARS > 0 && (
+              <div className="bg-[#E0F6FF] rounded-xl p-3 mb-4 text-sm space-y-2">
+                <p className="font-bold text-[#0090C5]">
+                  Seña {SENA_PORC}%: <span className="text-[#00AEEF]">$ {senaARS.toLocaleString('es-AR')}</span>
+                </p>
+                <p className="text-xs text-[#0090C5]">por {form.cantPasajeros} pasajero{parseInt(form.cantPasajeros) > 1 ? 's' : ''} · el resto al viajar</p>
+                <hr className="border-[#b3e6f9]" />
+                <p className="text-xs font-bold text-[#0090C5] mb-1">💳 Financiación en cuotas:</p>
+                <div className="grid grid-cols-3 gap-1">
+                  {[3, 6, 12].map(cuotas => {
+                    const total = precioARS * parseInt(form.cantPasajeros)
+                    const coef = cuotas === 3 ? 1 : cuotas === 6 ? 1.15 : 1.35
+                    const valorCuota = Math.round(total * coef / cuotas)
+                    return (
+                      <div key={cuotas} className="bg-white rounded-lg p-2 text-center border border-[#b3e6f9]">
+                        <p className="text-[10px] text-gray-500 font-semibold">{cuotas} cuotas</p>
+                        <p className="text-xs font-black text-[#00AEEF]">$ {valorCuota.toLocaleString('es-AR')}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+                <p className="text-[10px] text-gray-400">Valores estimados · consultá financiación sin interés</p>
               </div>
             )}
             {estado === 'ok' ? null : (

@@ -12,7 +12,7 @@ async function guardarEnKV(data: object) {
 }
 
 export async function POST(req: NextRequest) {
-  const { nombre, email, telefono, cantPasajeros, fechaDeseada, mensaje, paqueteTitulo, paqueteId } = await req.json()
+  const { nombre, email, telefono, cantPasajeros, fechaDeseada, mensaje, paqueteTitulo, paqueteId, precioUSD, precioARS, fecha: fechaPaquete } = await req.json()
 
   await guardarEnKV({ nombre, email, telefono, cantPasajeros, fechaDeseada, mensaje, paqueteTitulo, paqueteId })
 
@@ -72,8 +72,13 @@ export async function POST(req: NextRequest) {
             <div style="background:#f0fbff;border-left:4px solid #00AEEF;padding:16px;border-radius:0 8px 8px 0;margin:24px 0">
               <p style="margin:0;color:#0090C5;font-size:14px"><strong>Resumen de tu consulta:</strong></p>
               <p style="margin:8px 0 0;color:#333;font-size:14px">📦 ${paqueteTitulo}</p>
-              <p style="margin:4px 0 0;color:#333;font-size:14px">👥 ${cantPasajeros} pasajero${cantPasajeros > 1 ? 's' : ''}</p>
+              <p style="margin:4px 0 0;color:#333;font-size:14px">👥 ${cantPasajeros} pasajero${parseInt(cantPasajeros) > 1 ? 's' : ''}</p>
+              ${fechaPaquete ? `<p style="margin:4px 0 0;color:#333;font-size:14px">🗓️ Fecha de salida: <strong>${fechaPaquete}</strong></p>` : ''}
               ${fechaDeseada ? `<p style="margin:4px 0 0;color:#333;font-size:14px">📅 Fecha deseada: ${fechaDeseada}</p>` : ''}
+              ${precioUSD ? `<p style="margin:4px 0 0;color:#00AEEF;font-size:16px;font-weight:bold">💵 USD ${parseInt(precioUSD).toLocaleString()} por persona</p>` : precioARS ? `<p style="margin:4px 0 0;color:#00AEEF;font-size:16px;font-weight:bold">💵 $ ${parseInt(precioARS).toLocaleString()} por persona</p>` : ''}
+            </div>
+            <div style="background:#f9fff9;border:1px solid #c3efd0;border-radius:8px;padding:14px;margin-bottom:20px">
+              <p style="margin:0;color:#2d7a3a;font-size:13px">🔒 <strong>Tu pre-reserva está guardada.</strong> Un asesor te va a contactar en menos de 24 hs para confirmar disponibilidad y coordinar el pago.</p>
             </div>
             <p style="color:#555;font-size:14px">
               ¿Necesitás respuesta urgente? Escribinos por WhatsApp:
