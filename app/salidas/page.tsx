@@ -1,5 +1,6 @@
 'use client'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { Paquete } from '@/lib/types'
 import ImgFallback from '@/components/ImgFallback'
@@ -24,11 +25,12 @@ function formatFecha(f: string) {
   return `${d} ${meses[m - 1]} ${y}`
 }
 
-export default function SalidasPage() {
+function SalidasInner() {
+  const searchParams = useSearchParams()
   const [paquetes, setPaquetes] = useState<Paquete[]>([])
   const [cargando, setCargando] = useState(true)
   const [categoria, setCategoria] = useState('Todas')
-  const [busqueda, setBusqueda] = useState('')
+  const [busqueda, setBusqueda] = useState(searchParams.get('q') || '')
 
   useEffect(() => {
     fetch('/api/paquetes').then(r => r.json()).then((data: Paquete[]) => {
@@ -170,5 +172,13 @@ export default function SalidasPage() {
         <p className="font-bold">✈️ Euforia Viajes · viajaconeuforia.com</p>
       </footer>
     </div>
+  )
+}
+
+export default function SalidasPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#f5f9fd]" />}>
+      <SalidasInner />
+    </Suspense>
   )
 }

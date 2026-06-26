@@ -119,11 +119,11 @@ export default function Home() {
             <h2 className="text-xl font-black text-gray-800 mb-4">🌍 Explorá por destino</h2>
             <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
               {DESTINOS_POPULARES.map(d => (
-                <button key={d.slug} onClick={() => setBusqueda(d.nombre)}
+                <Link key={d.slug} href={`/salidas?q=${encodeURIComponent(d.nombre)}`}
                   className="bg-white rounded-2xl shadow hover:shadow-md transition p-3 text-center group cursor-pointer border border-transparent hover:border-[#00AEEF]">
                   <div className="text-2xl mb-1">{d.emoji}</div>
                   <p className="text-[11px] font-semibold text-gray-700 leading-tight group-hover:text-[#00AEEF]">{d.nombre}</p>
-                </button>
+                </Link>
               ))}
             </div>
           </section>
