@@ -173,38 +173,78 @@ export default function MiCuentaPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {[...reservas].reverse().map((r, i) => (
-              <div key={i} className="bg-white rounded-2xl shadow p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <p className="font-bold text-gray-800">{r.paqueteTitulo}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {r.fecha ? new Date(r.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' }) : ''}
-                    </p>
+            {[...reservas].reverse().map((r, i) => {
+              const estado = r.estado || 'en_gestion'
+              const pasos = [
+                { key: 'recibida', label: 'Recibida', icon: '📋' },
+                { key: 'en_gestion', label: 'En revisión', icon: '🔍' },
+                { key: 'confirmada', label: 'Confirmada', icon: '✅' },
+              ]
+              const cancelada = estado === 'cancelada'
+              const pasoActual = cancelada ? -1 : pasos.findIndex(p => p.key === estado)
+              const idx = pasoActual === -1 ? 0 : pasoActual
+
+              return (
+                <div key={i} className="bg-white rounded-2xl shadow p-5">
+                  <div className="flex items-start justify-between mb-1">
+                    <p className="font-bold text-gray-800 text-sm leading-snug">{r.paqueteTitulo}</p>
+                    {cancelada && (
+                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-red-100 text-red-600 ml-2 shrink-0">❌ Cancelada</span>
+                    )}
                   </div>
-                  {(() => {
-                    const e = r.estado || 'en_gestion'
-                    const cfg: Record<string, [string, string]> = {
-                      confirmada: ['bg-green-100 text-green-700', '✅ Confirmada'],
-                      cancelada: ['bg-red-100 text-red-600', '❌ Cancelada'],
-                      en_gestion: ['bg-yellow-100 text-yellow-700', '⏳ En gestión'],
-                    }
-                    const [cls, label] = cfg[e] || cfg.en_gestion
-                    return <span className={`text-xs font-bold px-3 py-1 rounded-full ${cls}`}>{label}</span>
-                  })()}
+                  <p className="text-xs text-gray-400 mb-4">
+                    Solicitada el {r.fecha ? new Date(r.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
+                    {r.cantPasajeros && ` · ${r.cantPasajeros} pasajero${r.cantPasajeros > 1 ? 's' : ''}`}
+                    {r.fechaDeseada && ` · Fecha deseada: ${r.fechaDeseada}`}
+                  </p>
+
+                  {/* Timeline de progreso */}
+                  {!cancelada && (
+                    <div className="flex items-center mb-5">
+                      {pasos.map((paso, pi) => {
+                        const activo = pi <= idx
+                        const esActual = pi === idx
+                        return (
+                          <div key={paso.key} className="flex items-center flex-1 last:flex-none">
+                            <div className="flex flex-col items-center">
+                              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-base font-bold transition-all
+                                ${esActual ? 'ring-4 ring-[#00AEEF]/30' : ''}
+                                ${activo ? 'bg-[#00AEEF] text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                {paso.icon}
+                              </div>
+                              <p className={`text-[10px] font-semibold mt-1 text-center leading-tight
+                                ${activo ? 'text-[#00AEEF]' : 'text-gray-400'}`}>
+                                {paso.label}
+                              </p>
+                            </div>
+                            {pi < pasos.length - 1 && (
+                              <div className={`flex-1 h-0.5 mx-1 mb-4 rounded ${pi < idx ? 'bg-[#00AEEF]' : 'bg-gray-200'}`} />
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {estado === 'confirmada' && (
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 text-xs text-green-700 font-semibold">
+                      🎉 ¡Tu reserva está confirmada! Pronto vas a recibir más detalles por email.
+                    </div>
+                  )}
+                  {estado === 'en_gestion' && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 text-xs text-yellow-700">
+                      ⏳ Estamos revisando tu solicitud. Un asesor te va a contactar en menos de 24 hs.
+                    </div>
+                  )}
+
+                  <a href={`https://wa.me/542804321400?text=${encodeURIComponent(`Hola! Consulto por mi pre-reserva de ${r.paqueteTitulo}`)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="block w-full text-center bg-[#25D366] text-white font-bold py-2.5 rounded-xl text-sm">
+                    💬 Consultar por WhatsApp
+                  </a>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-4">
-                  <span>👥 {r.cantPasajeros} pasajero{r.cantPasajeros > 1 ? 's' : ''}</span>
-                  {r.fechaDeseada && <span>📅 {r.fechaDeseada}</span>}
-                  <span>📱 {r.telefono}</span>
-                </div>
-                <a href={`https://wa.me/542804321400?text=${encodeURIComponent(`Hola! Consulto por mi pre-reserva de ${r.paqueteTitulo}`)}`}
-                  target="_blank" rel="noopener noreferrer"
-                  className="block w-full text-center bg-green-500 text-white font-bold py-2 rounded-xl text-sm">
-                  Consultar estado por WhatsApp
-                </a>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
