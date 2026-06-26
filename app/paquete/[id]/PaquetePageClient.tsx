@@ -156,6 +156,42 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
               </div>
               <hr className="my-4" />
               <div className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{p.descripcion}</div>
+
+              {/* INCLUYE / NO INCLUYE */}
+              <div className="mt-6 grid sm:grid-cols-2 gap-4">
+                <div className="bg-green-50 rounded-2xl p-4">
+                  <p className="font-bold text-green-700 text-sm mb-3">✅ Incluye</p>
+                  <ul className="space-y-1.5 text-sm text-green-800">
+                    <li>🛏️ Hotelería</li>
+                    <li>☕ Desayuno diario</li>
+                    {(p.transporte || '').toLowerCase().includes('aéreo') || (p.transporte || '').toLowerCase().includes('aereo') ? (
+                      <>
+                        <li>✈️ Vuelos incluidos</li>
+                        <li>🚐 Transfer in / out</li>
+                      </>
+                    ) : (
+                      <>
+                        <li>🚌 Transporte en bus</li>
+                        <li>🍽️ Cenas a bordo</li>
+                      </>
+                    )}
+                    <li>🛡️ Seguro de viaje</li>
+                    <li>👤 Coordinador de grupo</li>
+                  </ul>
+                </div>
+                <div className="bg-red-50 rounded-2xl p-4">
+                  <p className="font-bold text-red-600 text-sm mb-3">❌ No incluye</p>
+                  <ul className="space-y-1.5 text-sm text-red-700">
+                    <li>🏄 Excursiones opcionales</li>
+                    <li>💵 Propinas</li>
+                    <li>🧳 Valijas extra</li>
+                    {!(p.transporte || '').toLowerCase().includes('bus') && (
+                      <li>🍽️ Cenas</li>
+                    )}
+                    <li>🍹 Gastos personales</li>
+                  </ul>
+                </div>
+              </div>
               {p.linkWeb && (
                 <a href={p.linkWeb} target="_blank" rel="noopener noreferrer"
                   className="inline-block mt-4 text-sm underline" style={{ color: '#00AEEF' }}>
