@@ -76,23 +76,39 @@ export async function POST(req: NextRequest) {
   if (!apiKey) return NextResponse.json({ ok: false, error: 'APPSHEET_API_KEY no configurada' })
 
   try {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'ApplicationAccessKey': apiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ Action: 'Find', Properties: {}, Rows: [] }),
-    })
+    // Traer todas las filas con paginación (AppSheet limita por defecto)
+    let allRows: Record<string, string>[] = []
+    let page = 0
+    const pageSize = 100
 
-    if (!res.ok) {
-      const err = await res.text()
-      return NextResponse.json({ ok: false, error: `AppSheet error ${res.status}: ${err}` })
+    while (true) {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'ApplicationAccessKey': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          Action: 'Find',
+          Properties: { Locale: 'es-AR', PageSize: pageSize, Page: page },
+          Rows: [],
+        }),
+      })
+
+      if (!res.ok) {
+        const err = await res.text()
+        return NextResponse.json({ ok: false, error: `AppSheet error ${res.status}: ${err}` })
+      }
+
+      const data = await res.json()
+      const rows: Record<string, string>[] = Array.isArray(data) ? data : (data.value || data.rows || [])
+      if (rows.length === 0) break
+      allRows = allRows.concat(rows)
+      if (rows.length < pageSize) break
+      page++
     }
 
-    const data = await res.json()
-    const rows: Record<string, string>[] = Array.isArray(data) ? data : (data.value || data.rows || [])
-    const paquetes = rows.map(mapearSalida).filter(p => p.titulo)
+    const paquetes = allRows.map(mapearSalida).filter(p => p.titulo)
 
     await redis.set('paquetes_sync', paquetes)
     await redis.set('paquetes_sync_fecha', new Date().toISOString())
