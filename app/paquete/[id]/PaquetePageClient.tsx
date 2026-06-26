@@ -1,5 +1,5 @@
 'use client'
-import { use, useState, useEffect } from 'react'
+import { use, useState, useEffect, useRef } from 'react'
 import { getPaquete, emojiDestino } from '@/lib/paquetes'
 import type { Paquete } from '@/lib/types'
 import Link from 'next/link'
@@ -8,6 +8,73 @@ import PaquetesSimilares from '@/components/PaquetesSimilares'
 import GaleriaFotos from '@/components/GaleriaFotos'
 
 const SENA_PORC = 15
+
+function PoliticaCancelacion({ esAereo }: { esAereo: boolean }) {
+  const [abierto, setAbierto] = useState(false)
+
+  const penalidades = esAereo ? [
+    { plazo: 'Desde seña hasta 45 días antes', penalidad: 'Se retiene la seña (30% del total)' },
+    { plazo: 'Entre 45 y 30 días antes', penalidad: 'Se cobra la tarifa aérea completa (sin devolución)' },
+    { plazo: 'Con menos de 30 días', penalidad: 'Tarifa aérea + penalidades de servicios terrestres' },
+  ] : [
+    { plazo: 'Más de 30 días antes', penalidad: 'Retención del 10% + IVA del total' },
+    { plazo: 'Entre 30 y 16 días antes', penalidad: 'Retención del 25% + IVA del total' },
+    { plazo: 'Entre 15 días y 72 hs', penalidad: 'Retención del 50% + IVA del total' },
+    { plazo: 'Menos de 72 hs o sin aviso', penalidad: '100% del total — sin devolución' },
+  ]
+
+  return (
+    <div className="mt-6 border border-gray-200 rounded-2xl overflow-hidden">
+      <button
+        onClick={() => setAbierto(a => !a)}
+        className="w-full flex items-center justify-between px-5 py-4 bg-gray-50 hover:bg-gray-100 transition text-left"
+      >
+        <span className="font-bold text-gray-700 text-sm">📋 Política de cancelación</span>
+        <span className="text-gray-400 text-lg">{abierto ? '▲' : '▼'}</span>
+      </button>
+
+      {abierto && (
+        <div className="px-5 py-4 space-y-4 text-sm text-gray-600">
+          <div>
+            <p className="font-semibold text-gray-700 mb-2">
+              {esAereo ? '✈️ Paquete aéreo — penalidades por cancelación' : '🚌 Paquete en bus — penalidades por cancelación'}
+            </p>
+            <div className="space-y-2">
+              {penalidades.map((p, i) => (
+                <div key={i} className="flex gap-3 bg-orange-50 rounded-xl p-3">
+                  <span className="text-orange-400 font-bold shrink-0">⚠️</span>
+                  <div>
+                    <p className="font-semibold text-gray-700">{p.plazo}</p>
+                    <p className="text-gray-500 text-xs mt-0.5">{p.penalidad}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {esAereo && (
+              <p className="text-xs text-gray-400 mt-3 bg-yellow-50 rounded-lg p-2">
+                ⚠️ Los boletos aéreos se emiten 30-45 días antes de la salida. Una vez emitidos no admiten cancelaciones ni cambios de fecha.
+              </p>
+            )}
+          </div>
+
+          <details className="group">
+            <summary className="cursor-pointer text-xs text-[#00AEEF] font-semibold select-none">
+              Ver condiciones generales completas ▼
+            </summary>
+            <div className="mt-3 space-y-3 text-xs text-gray-500 leading-relaxed border-t pt-3">
+              <p><strong>Inscripción:</strong> Se considera inscripto al pasajero una vez abonada la seña o acordadas las condiciones de pago. La inscripción implica aceptación plena de estas condiciones.</p>
+              <p><strong>Cancelación por el organizador:</strong> Euforia Viajes se reserva el derecho de cancelar una salida si el número de inscriptos no es suficiente, notificando con mínimo 7 días de anticipación. En ese caso se devuelve el 100% de lo abonado sin indemnización adicional.</p>
+              <p><strong>Equipaje:</strong> Hasta 20 kg de bodega + bolso de mano. El exceso puede tener costo adicional. El equipaje viaja por cuenta y riesgo del pasajero.</p>
+              <p><strong>Documentación:</strong> La obtención y vigencia de DNI, pasaporte, visas o certificados es responsabilidad exclusiva del pasajero. No se realizan reintegros por problemas de documentación.</p>
+              <p><strong>Reembolsos:</strong> Todo reclamo deberá presentarse por escrito dentro de los 30 días corridos posteriores a la finalización del tour. No se reembolsan servicios no utilizados por decisión del pasajero.</p>
+              <p><strong>Jurisdicción:</strong> Tribunales ordinarios de la ciudad de Trelew, Provincia del Chubut. Leg. 16816 — Vigencia: 01/10/2024.</p>
+            </div>
+          </details>
+        </div>
+      )}
+    </div>
+  )
+}
 
 function formatFecha(f: string) {
   if (!f) return ''
@@ -198,6 +265,12 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
                   Ver en sitio web →
                 </a>
               )}
+
+              {/* POLÍTICA DE CANCELACIÓN */}
+              <PoliticaCancelacion esAereo={
+                (p.transporte || '').toLowerCase().includes('aéreo') ||
+                (p.transporte || '').toLowerCase().includes('aereo')
+              } />
             </div>
           </div>
         </div>
