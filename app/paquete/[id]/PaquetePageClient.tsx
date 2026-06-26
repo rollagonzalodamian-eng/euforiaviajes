@@ -181,19 +181,26 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
                 <hr className="border-[#b3e6f9]" />
                 <p className="text-xs font-bold text-[#0090C5] mb-1">💳 Financiación en cuotas:</p>
                 <div className="grid grid-cols-3 gap-1">
-                  {[3, 6, 12].map(cuotas => {
+                  {[
+                    { n: 2, pct: 16.09 },
+                    { n: 3, pct: 18.79 },
+                    { n: 6, pct: 25.69 },
+                    { n: 9, pct: 33.89 },
+                    { n: 12, pct: 38.89 },
+                    { n: 18, pct: 48.19 },
+                  ].map(({ n, pct }) => {
                     const total = precioARS * parseInt(form.cantPasajeros)
-                    const coef = cuotas === 3 ? 1 : cuotas === 6 ? 1.15 : 1.35
-                    const valorCuota = Math.round(total * coef / cuotas)
+                    const valorCuota = Math.round(total * (1 + pct / 100) / n)
                     return (
-                      <div key={cuotas} className="bg-white rounded-lg p-2 text-center border border-[#b3e6f9]">
-                        <p className="text-[10px] text-gray-500 font-semibold">{cuotas} cuotas</p>
+                      <div key={n} className="bg-white rounded-lg p-2 text-center border border-[#b3e6f9]">
+                        <p className="text-[10px] text-gray-500 font-semibold">{n} cuotas</p>
                         <p className="text-xs font-black text-[#00AEEF]">$ {valorCuota.toLocaleString('es-AR')}</p>
+                        <p className="text-[9px] text-gray-400">+{pct}%</p>
                       </div>
                     )
                   })}
                 </div>
-                <p className="text-[10px] text-gray-400">Valores estimados · consultá financiación sin interés</p>
+                <p className="text-[10px] text-gray-400">Financiación Mercado Pago · valores con interés incluido</p>
               </div>
             )}
             {estado === 'ok' ? null : (
