@@ -39,12 +39,21 @@ export default function SalidasPage() {
 
   const categorias = useMemo(() => ['Todas', ...Array.from(new Set(paquetes.map(p => p.categoria).filter(Boolean))).sort()], [paquetes])
 
+  function parseFechaOrden(f: string): number {
+    if (!f) return Infinity
+    const parts = f.includes('-') ? f.slice(0,10).split('-') : f.split('/')
+    if (parts.length < 3) return Infinity
+    const [a, b, c] = parts.map(Number)
+    const date = a > 31 ? new Date(a, b-1, c) : new Date(c, b-1, a)
+    return isNaN(date.getTime()) ? Infinity : date.getTime()
+  }
+
   const filtrados = useMemo(() => paquetes.filter(p => {
     const cat = categoria === 'Todas' || p.categoria === categoria
     const texto = busqueda.toLowerCase()
     const match = !texto || p.titulo.toLowerCase().includes(texto) || p.destino.toLowerCase().includes(texto)
     return cat && match
-  }), [categoria, busqueda, paquetes])
+  }).sort((a, b) => parseFechaOrden(a.fecha) - parseFechaOrden(b.fecha)), [categoria, busqueda, paquetes])
 
   return (
     <div className="min-h-screen">
@@ -121,14 +130,19 @@ export default function SalidasPage() {
                   </div>
 
                   <div className="mt-3 flex-1">
-                    {p.precioUSD
-                      ? <p className="font-extrabold text-xl" style={{ color: '#00AEEF' }}>USD {parseInt(p.precioUSD).toLocaleString()}</p>
-                      : p.precioARS
-                        ? <p className="font-extrabold text-xl" style={{ color: '#00AEEF' }}>$ {parseInt(p.precioARS).toLocaleString('es-AR')}</p>
-                        : null}
-                    {p.precioUSD && (
-                      <p className="text-xs text-gray-400 mt-0.5">Hasta 12 cuotas · Consultá financiación</p>
-                    )}
+                    {(() => {
+                      const esNacional = (p.categoria || '').toLowerCase().includes('nacional')
+                      if (esNacional && p.precioARS)
+                        return <p className="font-extrabold text-xl" style={{ color: '#00AEEF' }}>$ {parseInt(p.precioARS).toLocaleString('es-AR')}</p>
+                      if (!esNacional && p.precioUSD)
+                        return <p className="font-extrabold text-xl" style={{ color: '#00AEEF' }}>USD {parseInt(p.precioUSD).toLocaleString()}</p>
+                      if (p.precioUSD)
+                        return <p className="font-extrabold text-xl" style={{ color: '#00AEEF' }}>USD {parseInt(p.precioUSD).toLocaleString()}</p>
+                      if (p.precioARS)
+                        return <p className="font-extrabold text-xl" style={{ color: '#00AEEF' }}>$ {parseInt(p.precioARS).toLocaleString('es-AR')}</p>
+                      return null
+                    })()}
+                    <p className="text-xs text-gray-400 mt-0.5">Hasta 12 cuotas · Consultá financiación</p>
                   </div>
 
                   <div className="mt-4 flex gap-2">

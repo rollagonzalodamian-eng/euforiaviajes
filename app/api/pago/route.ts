@@ -24,9 +24,9 @@ export async function POST(req: NextRequest) {
     }],
     payer: { name: nombre, email },
     back_urls: {
-      success: `${process.env.NEXT_PUBLIC_URL}/confirmacion`,
+      success: `${process.env.NEXT_PUBLIC_URL}/api/pago/confirmacion`,
       failure: `${process.env.NEXT_PUBLIC_URL}/paquete/${paqueteId}`,
-      pending: `${process.env.NEXT_PUBLIC_URL}/confirmacion`,
+      pending: `${process.env.NEXT_PUBLIC_URL}/api/pago/confirmacion`,
     },
     auto_return: 'approved',
     statement_descriptor: 'EUFORIA VIAJES',

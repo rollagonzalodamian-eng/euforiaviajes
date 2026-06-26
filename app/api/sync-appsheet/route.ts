@@ -108,7 +108,15 @@ export async function POST(req: NextRequest) {
       page++
     }
 
-    const paquetes = allRows.map(mapearSalida).filter(p => p.titulo)
+    const mapped = allRows.map(mapearSalida).filter(p => p.titulo)
+    // Deduplicar: mismo título + misma fecha = mismo paquete
+    const vistos = new Set<string>()
+    const paquetes = mapped.filter(p => {
+      const key = `${p.titulo.toLowerCase().trim()}|${p.fecha}`
+      if (vistos.has(key)) return false
+      vistos.add(key)
+      return true
+    })
 
     await redis.set('paquetes_sync', paquetes)
     await redis.set('paquetes_sync_fecha', new Date().toISOString())
