@@ -24,6 +24,7 @@ export default function Home() {
   const [categoria, setCategoria] = useState('Todos')
   const [transporte, setTransporte] = useState('Todos')
   const [ordenPrecio, setOrdenPrecio] = useState('')
+  const [precioMin, setPrecioMin] = useState(0)
   const [moneda, setMoneda] = useState<'USD' | 'ARS'>('USD')
   const [tc, setTc] = useState(1400)
 
@@ -47,17 +48,23 @@ export default function Home() {
         p.pais.toLowerCase().includes(texto)
       const cat = categoria === 'Todos' || p.categoria === categoria
       const trans = transporte === 'Todos' || p.transporte === transporte
-      return coincide && cat && trans
+      const precioUSD = parseFloat(p.precioUSD) || parseFloat(p.precioARS) / tc || 0
+      const cumplePrecio = precioMin === 0 || precioUSD >= precioMin
+      return coincide && cat && trans && cumplePrecio
     })
     if (ordenPrecio) {
       r = [...r].sort((a, b) => {
         const pa = parseFloat(a.precioUSD) || parseFloat(a.precioARS) / tc || 0
         const pb = parseFloat(b.precioUSD) || parseFloat(b.precioARS) / tc || 0
+        // Sin precio siempre al final
+        if (pa === 0 && pb === 0) return 0
+        if (pa === 0) return 1
+        if (pb === 0) return -1
         return ordenPrecio === 'asc' ? pa - pb : pb - pa
       })
     }
     return r
-  }, [busqueda, categoria, transporte, ordenPrecio, paquetes, tc])
+  }, [busqueda, categoria, transporte, ordenPrecio, precioMin, paquetes, tc])
 
   const destacados = paquetes.filter(p => p.destacado || p.enPromocion).slice(0, 6)
 
@@ -232,9 +239,16 @@ export default function Home() {
           <p className="text-xs text-gray-400 mt-2">{filtrados.length} paquete{filtrados.length !== 1 ? 's' : ''} encontrado{filtrados.length !== 1 ? 's' : ''}</p>
         </section>
 
-        {/* GRILLA */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtrados.map(p => (
+        {/* GRILLA — ordenada por sección */}
+        {filtrados.length === 0 ? null : (() => {
+          const ORDEN_SECCIONES = [
+            { key: 'Experiencias Chubut', emoji: '🏔️', label: 'Excursiones en la zona' },
+            { key: 'Nacionales', emoji: '🇦🇷', label: 'Viajes nacionales' },
+            { key: 'Internacionales', emoji: '🌍', label: 'Viajes internacionales' },
+          ]
+
+          const enPromo = filtrados.filter(p => p.enPromocion)
+          const renderCard = (p: Paquete) => (
             <Link key={p.id} href={`/paquete/${p.id}`}
               className="bg-white rounded-2xl shadow hover:shadow-lg transition group flex flex-col overflow-hidden">
               <div className="h-44 overflow-hidden relative">
@@ -267,10 +281,53 @@ export default function Home() {
                     Ver más →
                   </span>
                 </div>
+                {(p as any).cupos && (
+                  <p className={`text-xs font-bold mt-2 ${parseInt((p as any).cupos) <= 5 ? 'text-red-500' : 'text-green-600'}`}>
+                    🪑 {(p as any).cupos} cupos disponibles
+                  </p>
+                )}
               </div>
             </Link>
-          ))}
-        </section>
+          )
+
+          return (
+            <>
+              {ORDEN_SECCIONES.map(sec => {
+                const items = filtrados.filter(p => p.categoria === sec.key)
+                if (items.length === 0) return null
+                return (
+                  <div key={sec.key} className="mb-10">
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="text-2xl">{sec.emoji}</span>
+                      <div>
+                        <h2 className="text-lg font-black text-gray-800">{sec.label}</h2>
+                        <p className="text-xs text-gray-400">{items.length} paquete{items.length !== 1 ? 's' : ''} disponible{items.length !== 1 ? 's' : ''}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {items.map(renderCard)}
+                    </div>
+                  </div>
+                )
+              })}
+
+              {enPromo.length > 0 && categoria === 'Todos' && !busqueda && (
+                <div className="mb-10">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-2xl">🔥</span>
+                    <div>
+                      <h2 className="text-lg font-black text-gray-800">Paquetes en promoción</h2>
+                      <p className="text-xs text-gray-400">{enPromo.length} ofertas activas</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {enPromo.map(renderCard)}
+                  </div>
+                </div>
+              )}
+            </>
+          )
+        })()}
 
         {filtrados.length === 0 && (
           <div className="text-center py-20 text-gray-400">
