@@ -17,6 +17,7 @@ export default function Header() {
           <Link href="/" className="hover:opacity-80 transition">Inicio</Link>
           <Link href="/salidas" className="hover:opacity-80 transition">Salidas Grupales</Link>
           <Link href="/arma-tu-viaje" className="hover:opacity-80 transition">Armá tu Viaje</Link>
+          <Link href="/blog" className="hover:opacity-80 transition">Blog</Link>
           <Link href="/nosotros" className="hover:opacity-80 transition">Nosotros</Link>
           <Link href="/faq" className="hover:opacity-80 transition">FAQ</Link>
           <Link href="/contacto" className="hover:opacity-80 transition">Contacto</Link>
@@ -41,6 +42,7 @@ export default function Header() {
           <Link href="/" onClick={() => setOpen(false)}>Inicio</Link>
           <Link href="/salidas" onClick={() => setOpen(false)}>Salidas Grupales</Link>
           <Link href="/arma-tu-viaje" onClick={() => setOpen(false)}>Armá tu Viaje</Link>
+          <Link href="/blog" onClick={() => setOpen(false)}>Blog</Link>
           <Link href="/nosotros" onClick={() => setOpen(false)}>Nosotros</Link>
           <Link href="/faq" onClick={() => setOpen(false)}>FAQ</Link>
           <Link href="/contacto" onClick={() => setOpen(false)}>Contacto</Link>
