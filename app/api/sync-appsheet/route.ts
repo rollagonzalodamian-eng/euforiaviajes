@@ -53,6 +53,7 @@ function mapearSalida(row: Record<string, string>, index: number) {
     fecha: row['Fecha'] || '',
     vendedor: row['Vendedor'] || '',
     disponible: row['Estado'] || 'Disponible',
+    cupos: row['Cupos'] || row['Cupo'] || row['CuposDisponibles'] || row['Cupos Disponibles'] || '',
     urlImagenes: extraerUrl(row['URL Imagenes'] || row['ImÃ¡genes y Videos'] || row['Imágenes y Videos'] || ''),
     foto: extraerUrl(row['URL Imagenes'] || row['ImÃ¡genes y Videos'] || ''),
   }

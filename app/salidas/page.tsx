@@ -158,6 +158,11 @@ function SalidasInner() {
                     {p.noches && <span>🌙 {p.noches} noches</span>}
                     {p.origen && <span>📍 Desde {p.origen}</span>}
                     {p.transporte && <span>{p.transporte === 'Aéreo' ? '✈️' : '🚌'} {p.transporte}</span>}
+                    {(p as any).cupos && (
+                      <span className={`font-bold ${parseInt((p as any).cupos) <= 5 ? 'text-red-500' : 'text-green-600'}`}>
+                        🪑 {(p as any).cupos} cupos
+                      </span>
+                    )}
                   </div>
 
                   <div className="mt-3 flex-1">
