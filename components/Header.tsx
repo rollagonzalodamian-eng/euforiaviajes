@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useState } from 'react'
 
 export default function Header() {
@@ -7,8 +8,8 @@ export default function Header() {
   return (
     <header style={{ backgroundColor: '#00AEEF' }} className="text-white shadow-md sticky top-0 z-40">
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-2xl font-extrabold tracking-tight">✈️ Euforia Viajes</span>
+        <Link href="/" className="flex items-center">
+          <Image src="/icon.png" alt="Euforia Viajes" width={44} height={44} className="rounded-lg" />
         </Link>
 
         {/* Desktop nav */}
@@ -17,6 +18,7 @@ export default function Header() {
           <Link href="/salidas" className="hover:opacity-80 transition">Salidas Grupales</Link>
           <Link href="/arma-tu-viaje" className="hover:opacity-80 transition">Armá tu Viaje</Link>
           <Link href="/nosotros" className="hover:opacity-80 transition">Nosotros</Link>
+          <Link href="/faq" className="hover:opacity-80 transition">FAQ</Link>
           <Link href="/contacto" className="hover:opacity-80 transition">Contacto</Link>
           <Link href="/mi-cuenta" className="hover:opacity-80 transition">Mi cuenta</Link>
           <a href="https://wa.me/542804321400" target="_blank"
@@ -40,6 +42,7 @@ export default function Header() {
           <Link href="/salidas" onClick={() => setOpen(false)}>Salidas Grupales</Link>
           <Link href="/arma-tu-viaje" onClick={() => setOpen(false)}>Armá tu Viaje</Link>
           <Link href="/nosotros" onClick={() => setOpen(false)}>Nosotros</Link>
+          <Link href="/faq" onClick={() => setOpen(false)}>FAQ</Link>
           <Link href="/contacto" onClick={() => setOpen(false)}>Contacto</Link>
           <Link href="/mi-cuenta" onClick={() => setOpen(false)}>Mi cuenta</Link>
         </div>
