@@ -309,7 +309,12 @@ export default function Home() {
       <footer className="bg-gray-900 text-white py-8 text-center text-sm">
         <p className="font-bold text-base mb-1">✈️ Euforia Viajes</p>
         <p className="text-gray-400 text-xs">viajaconeuforia.com · adm@viajaconeuforia.com</p>
-        <p className="text-gray-600 text-xs mt-3">© 2026 Euforia Viajes. Todos los derechos reservados.</p>
+        <div className="flex justify-center gap-4 mt-3 text-xs text-gray-500">
+          <Link href="/nosotros" className="hover:text-gray-300 transition">Nosotros</Link>
+          <Link href="/terminos" className="hover:text-gray-300 transition">Términos y Condiciones</Link>
+          <Link href="/contacto" className="hover:text-gray-300 transition">Contacto</Link>
+        </div>
+        <p className="text-gray-600 text-xs mt-3">© 2026 Euforia Viajes · Leg. 16816. Todos los derechos reservados.</p>
       </footer>
     </div>
   )
