@@ -61,6 +61,7 @@ export default function AdminPage() {
   const [subiendoArchivo, setSubiendoArchivo] = useState(false)
   const [mensaje, setMensaje] = useState('')
   const [error, setError] = useState('')
+  const [vistaReservas, setVistaReservas] = useState<'pipeline' | 'lista'>('pipeline')
 
   async function login() {
     const res = await fetch('/api/admin/fotos', { headers: { 'x-admin-pass': pass } })
@@ -978,121 +979,208 @@ export default function AdminPage() {
         )}
 
         {/* RESERVAS */}
-        {tab === 'reservas' && (
+        {tab === 'reservas' && (() => {
+          const ETAPAS = [
+            { id: 1, label: 'Nueva consulta', color: '#6B7280', bg: 'bg-gray-100', badge: 'bg-gray-200 text-gray-700' },
+            { id: 2, label: 'Cotización enviada', color: '#00AEEF', bg: 'bg-blue-50', badge: 'bg-blue-100 text-blue-700' },
+            { id: 3, label: 'Confirmado', color: '#22C55E', bg: 'bg-green-50', badge: 'bg-green-100 text-green-700' },
+            { id: 4, label: 'No confirmó', color: '#F59E0B', bg: 'bg-yellow-50', badge: 'bg-yellow-100 text-yellow-700' },
+            { id: 5, label: 'Lead frío', color: '#8B5CF6', bg: 'bg-purple-50', badge: 'bg-purple-100 text-purple-700' },
+          ]
+
+          async function cambiarEtapa(r: any, etapa: number) {
+            await fetch('/api/admin/crm', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ pass, id: r.id, etapa }),
+            })
+            setReservas(prev => prev.map((x: any) => x.id === r.id ? { ...x, etapa } : x))
+          }
+
+          async function enviarCotizacion(r: any) {
+            setMensaje('Enviando cotización...')
+            const res = await fetch('/api/admin/crm', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ pass, id: r.id }),
+            })
+            if (res.ok) {
+              setReservas(prev => prev.map((x: any) => x.id === r.id ? { ...x, etapa: 2, cotizacionEnviada: new Date().toISOString() } : x))
+              setMensaje('✅ Cotización enviada a ' + r.email)
+            } else {
+              setMensaje('❌ Error al enviar cotización')
+            }
+            setTimeout(() => setMensaje(''), 4000)
+          }
+
+          return (
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-800">Pre-Reservas</h2>
-              <div className="flex gap-3">
-                <button onClick={cargarReservas} className="text-[#00AEEF] text-sm font-medium">Actualizar</button>
-                {reservas.length > 0 && (
-                  <button
-                    onClick={async () => {
-                      if (!confirm('¿Borrar TODAS las pre-reservas? Esta acción no se puede deshacer.')) return
-                      await fetch('/api/admin/reservas', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pass }) })
-                      setReservas([])
-                    }}
-                    className="bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg"
-                  >🗑️ Borrar todo</button>
-                )}
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-bold text-gray-800">CRM · Consultas</h2>
+                <div className="flex rounded-lg overflow-hidden border border-gray-200 text-xs">
+                  <button onClick={() => setVistaReservas('pipeline')}
+                    className={`px-3 py-1.5 font-semibold transition ${vistaReservas === 'pipeline' ? 'bg-[#00AEEF] text-white' : 'bg-white text-gray-500'}`}>
+                    Pipeline
+                  </button>
+                  <button onClick={() => setVistaReservas('lista')}
+                    className={`px-3 py-1.5 font-semibold transition ${vistaReservas === 'lista' ? 'bg-[#00AEEF] text-white' : 'bg-white text-gray-500'}`}>
+                    Lista
+                  </button>
+                </div>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <button onClick={cargarReservas} className="text-[#00AEEF] text-sm font-medium">↻ Actualizar</button>
                 {reservas.length > 0 && (
                   <button
                     onClick={() => {
-                      const headers = ['Nombre', 'Email', 'Teléfono', 'Pasajeros', 'Fecha deseada', 'Paquete', 'Fecha consulta', 'Mensaje']
+                      const headers = ['Nombre', 'Email', 'Teléfono', 'Pasajeros', 'Fecha deseada', 'Paquete', 'Etapa', 'Fecha consulta']
                       const rows = reservas.map((r: any) => [
                         r.nombre, r.email, r.telefono, r.cantPasajeros,
-                        r.fechaDeseada || '', r.paqueteTitulo,
+                        r.fechaDeseada || '', r.paqueteTitulo, r.etapa || 1,
                         r.fecha ? new Date(r.fecha).toLocaleDateString('es-AR') : '',
-                        (r.mensaje || '').replace(/,/g, ' ')
                       ])
                       const csv = [headers, ...rows].map(r => r.join(',')).join('\n')
                       const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
                       const url = URL.createObjectURL(blob)
-                      const a = document.createElement('a')
-                      a.href = url; a.download = 'reservas-euforia.csv'; a.click()
+                      const a = document.createElement('a'); a.href = url; a.download = 'crm-euforia.csv'; a.click()
                     }}
-                    className="bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg"
-                  >
-                    📥 Exportar Excel
+                    className="bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg">
+                    📥 Exportar
+                  </button>
+                )}
+                {reservas.length > 0 && (
+                  <button
+                    onClick={async () => {
+                      if (!confirm('¿Borrar TODAS las consultas?')) return
+                      await fetch('/api/admin/reservas', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pass }) })
+                      setReservas([])
+                    }}
+                    className="bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg">
+                    🗑️ Borrar todo
                   </button>
                 )}
               </div>
             </div>
+
             {reservas.length === 0 ? (
               <div className="text-center py-12 text-gray-400">
-                <svg className="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                <p>No hay pre-reservas aún</p>
+                <p className="text-4xl mb-3">📭</p>
+                <p>No hay consultas aún</p>
+              </div>
+            ) : vistaReservas === 'pipeline' ? (
+              /* VISTA PIPELINE */
+              <div className="space-y-4">
+                {ETAPAS.map(etapa => {
+                  const items = [...reservas].filter((r: any) => (r.etapa || 1) === etapa.id).reverse()
+                  return (
+                    <div key={etapa.id} className={`rounded-2xl border-2 p-4 ${items.length > 0 ? etapa.bg : 'bg-gray-50 opacity-60'}`}
+                      style={{ borderColor: etapa.color + '40' }}>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: etapa.color }} />
+                          <span className="font-bold text-gray-700 text-sm">{etapa.label}</span>
+                        </div>
+                        <span className={`text-xs font-black px-2 py-0.5 rounded-full ${etapa.badge}`}>{items.length}</span>
+                      </div>
+                      {items.length === 0 ? (
+                        <p className="text-xs text-gray-400 text-center py-2">Sin consultas en esta etapa</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {items.map((r: any) => (
+                            <div key={r.id || r.email} className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                <div className="min-w-0">
+                                  <p className="font-bold text-gray-800 text-sm truncate">{r.nombre}</p>
+                                  <p className="text-xs text-[#00AEEF] font-medium truncate">{r.paqueteTitulo}</p>
+                                  <p className="text-[10px] text-gray-400 mt-0.5">
+                                    {r.fecha ? new Date(r.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
+                                    {r.cotizacionEnviada && ' · ✉️ cotiz. enviada'}
+                                  </p>
+                                </div>
+                                <a href={`https://wa.me/54${r.telefono?.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${r.nombre}! Te contactamos por ${r.paqueteTitulo}`)}`}
+                                  target="_blank" rel="noopener noreferrer"
+                                  className="bg-[#25D366] text-white text-[10px] px-2 py-1 rounded-lg font-bold shrink-0">WA</a>
+                              </div>
+                              <div className="text-[10px] text-gray-500 flex gap-2 flex-wrap mb-2">
+                                <span>📧 {r.email}</span>
+                                <span>👥 {r.cantPasajeros}p</span>
+                                {r.fechaDeseada && <span>📅 {r.fechaDeseada}</span>}
+                              </div>
+                              <div className="flex gap-1 flex-wrap">
+                                {/* Botón cotizar (solo etapa 1) */}
+                                {etapa.id === 1 && (
+                                  <button onClick={() => enviarCotizacion(r)}
+                                    className="text-[10px] font-bold px-2 py-1 rounded-lg bg-[#00AEEF] text-white hover:bg-[#0090C5] transition">
+                                    ✉️ Enviar cotización
+                                  </button>
+                                )}
+                                {/* Mover de etapa */}
+                                <select defaultValue=""
+                                  onChange={e => { if (e.target.value) cambiarEtapa(r, parseInt(e.target.value)); e.target.value = '' }}
+                                  className="text-[10px] border border-gray-200 rounded-lg px-1 py-1 outline-none text-gray-600">
+                                  <option value="" disabled>Mover a...</option>
+                                  {ETAPAS.filter(e => e.id !== etapa.id).map(e => (
+                                    <option key={e.id} value={e.id}>{e.label}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             ) : (
+              /* VISTA LISTA */
               <div className="space-y-3">
-                {[...reservas].reverse().map((r, i) => {
-                  const estadoColor: Record<string, string> = {
-                    confirmada: 'bg-green-100 text-green-700',
-                    cancelada: 'bg-red-100 text-red-600',
-                    en_gestion: 'bg-yellow-100 text-yellow-700',
-                  }
-                  const estadoLabel: Record<string, string> = {
-                    confirmada: '✅ Confirmada',
-                    cancelada: '❌ Cancelada',
-                    en_gestion: '⏳ En gestión',
-                  }
+                {[...reservas].reverse().map((r: any, i) => {
+                  const etapa = ETAPAS.find(e => e.id === (r.etapa || 1)) || ETAPAS[0]
                   return (
-                  <div key={i} className="bg-white rounded-xl shadow-sm border p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <p className="font-semibold text-gray-800">{r.nombre}</p>
-                        <p className="text-xs text-gray-500">
-                          {r.fecha ? new Date(r.fecha).toLocaleDateString('es-AR', {
-                            day: '2-digit', month: '2-digit', year: 'numeric',
-                            hour: '2-digit', minute: '2-digit'
-                          }) : ''}
-                        </p>
+                    <div key={i} className="bg-white rounded-xl shadow-sm border p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="font-semibold text-gray-800">{r.nombre}</p>
+                          <p className="text-xs text-gray-500">
+                            {r.fecha ? new Date(r.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                          </p>
+                        </div>
+                        <a href={`https://wa.me/54${r.telefono?.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${r.nombre}! Te contactamos por ${r.paqueteTitulo}`)}`}
+                          target="_blank" rel="noopener noreferrer"
+                          className="bg-green-500 text-white text-xs px-3 py-1 rounded-full font-medium">WhatsApp</a>
                       </div>
-                      <a
-                        href={`https://wa.me/542804321400?text=${encodeURIComponent(`Hola ${r.nombre}! Te contactamos por tu consulta sobre ${r.paqueteTitulo}`)}`}
-                        target="_blank" rel="noopener noreferrer"
-                        className="bg-green-500 text-white text-xs px-3 py-1 rounded-full font-medium"
-                      >WhatsApp</a>
+                      <p className="text-sm text-[#00AEEF] font-medium mb-2">{r.paqueteTitulo}</p>
+                      <div className="grid grid-cols-2 gap-1 text-xs text-gray-600 mb-3">
+                        <span>📧 {r.email}</span>
+                        <span>📱 {r.telefono}</span>
+                        <span>👥 {r.cantPasajeros} pasajeros</span>
+                        {r.fechaDeseada && <span>📅 {r.fechaDeseada}</span>}
+                        {r.cotizacionEnviada && <span className="text-green-600">✉️ Cotización enviada</span>}
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-xs font-bold px-2 py-1 rounded-full ${etapa.badge}`}>{etapa.label}</span>
+                        {r.etapa === 1 && (
+                          <button onClick={() => enviarCotizacion(r)}
+                            className="text-xs font-bold px-3 py-1 rounded-lg bg-[#00AEEF] text-white">
+                            ✉️ Enviar cotización
+                          </button>
+                        )}
+                        <select defaultValue={r.etapa || 1}
+                          onChange={e => cambiarEtapa(r, parseInt(e.target.value))}
+                          className="text-xs border border-gray-200 rounded-lg px-2 py-1 outline-none focus:border-[#00AEEF]">
+                          {ETAPAS.map(e => <option key={e.id} value={e.id}>{e.label}</option>)}
+                        </select>
+                      </div>
                     </div>
-                    <p className="text-sm text-[#00AEEF] font-medium mb-2">{r.paqueteTitulo}</p>
-                    <div className="grid grid-cols-2 gap-1 text-xs text-gray-600 mb-3">
-                      <span>📧 {r.email}</span>
-                      <span>📱 {r.telefono}</span>
-                      <span>👥 {r.cantPasajeros} pasajeros</span>
-                      {r.fechaDeseada && <span>📅 {r.fechaDeseada}</span>}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${estadoColor[r.estado || 'en_gestion']}`}>
-                        {estadoLabel[r.estado || 'en_gestion']}
-                      </span>
-                      <select
-                        value={r.estado || 'en_gestion'}
-                        onChange={async (e) => {
-                          const nuevoEstado = e.target.value
-                          await fetch('/api/admin/reservas', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ pass, email: r.email, paqueteId: r.paqueteId, estado: nuevoEstado }),
-                          })
-                          setReservas((prev: any[]) => prev.map((x: any, j: number) =>
-                            j === (reservas.length - 1 - i) ? { ...x, estado: nuevoEstado } : x
-                          ))
-                        }}
-                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 outline-none focus:border-[#00AEEF]"
-                      >
-                        <option value="en_gestion">⏳ En gestión</option>
-                        <option value="confirmada">✅ Confirmada</option>
-                        <option value="cancelada">❌ Cancelada</option>
-                      </select>
-                    </div>
-                  </div>
-                )})}
-
+                  )
+                })}
               </div>
             )}
           </div>
-        )}
+          )
+        })()}
 
         {/* USUARIOS */}
         {tab === 'usuarios' && (
