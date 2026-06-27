@@ -79,47 +79,33 @@ export async function POST(req: NextRequest) {
 
   try {
     // Traer todas las filas con paginación (AppSheet limita por defecto)
-    let allRows: Record<string, string>[] = []
-    let page = 1
-    const pageSize = 100
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'ApplicationAccessKey': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ Action: 'Find', Properties: {}, Rows: [] }),
+    })
 
-    while (true) {
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'ApplicationAccessKey': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          Action: 'Find',
-          Properties: { PageSize: pageSize, Page: page },
-          Rows: [],
-        }),
-      })
+    const rawText = await res.text()
 
-      const rawText = await res.text()
-
-      if (!res.ok) {
-        return NextResponse.json({ ok: false, error: `AppSheet error ${res.status}: ${rawText.slice(0, 300)}` })
-      }
-
-      if (!rawText || rawText.trim() === '') {
-        return NextResponse.json({ ok: false, error: `AppSheet devolvió respuesta vacía. Status: ${res.status}. URL: ${API_URL}` })
-      }
-
-      let data: any
-      try {
-        data = JSON.parse(rawText)
-      } catch {
-        return NextResponse.json({ ok: false, error: `AppSheet respuesta inválida: ${rawText.slice(0, 200)}` })
-      }
-
-      const rows: Record<string, string>[] = Array.isArray(data) ? data : (data.value || data.rows || [])
-      if (rows.length === 0) break
-      allRows = allRows.concat(rows)
-      if (rows.length < pageSize) break
-      page++
+    if (!res.ok) {
+      return NextResponse.json({ ok: false, error: `AppSheet error ${res.status}: ${rawText.slice(0, 300)}` })
     }
+
+    if (!rawText || rawText.trim() === '') {
+      return NextResponse.json({ ok: false, error: 'AppSheet devolvió respuesta vacía. Verificá la API Key.' })
+    }
+
+    let parsed: any
+    try {
+      parsed = JSON.parse(rawText)
+    } catch {
+      return NextResponse.json({ ok: false, error: `AppSheet respuesta inválida: ${rawText.slice(0, 200)}` })
+    }
+
+    const allRows: Record<string, string>[] = Array.isArray(parsed) ? parsed : (parsed.value || parsed.rows || [])
 
     const mapped = allRows.map(mapearSalida).filter(p => p.titulo)
     // Deduplicar: mismo título + misma fecha = mismo paquete
