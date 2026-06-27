@@ -10,6 +10,17 @@ export async function GET() {
   }
 }
 
+export async function DELETE(req: NextRequest) {
+  const { pass } = await req.json()
+  if (pass !== process.env.ADMIN_PASS) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  try {
+    await redis.del('reservas')
+    return NextResponse.json({ ok: true })
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: e.message }, { status: 500 })
+  }
+}
+
 export async function POST(req: NextRequest) {
   const { pass, email, paqueteId, estado } = await req.json()
   if (pass !== process.env.ADMIN_PASS) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

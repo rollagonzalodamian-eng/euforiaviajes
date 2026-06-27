@@ -986,6 +986,16 @@ export default function AdminPage() {
                 <button onClick={cargarReservas} className="text-[#00AEEF] text-sm font-medium">Actualizar</button>
                 {reservas.length > 0 && (
                   <button
+                    onClick={async () => {
+                      if (!confirm('¿Borrar TODAS las pre-reservas? Esta acción no se puede deshacer.')) return
+                      await fetch('/api/admin/reservas', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pass }) })
+                      setReservas([])
+                    }}
+                    className="bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg"
+                  >🗑️ Borrar todo</button>
+                )}
+                {reservas.length > 0 && (
+                  <button
                     onClick={() => {
                       const headers = ['Nombre', 'Email', 'Teléfono', 'Pasajeros', 'Fecha deseada', 'Paquete', 'Fecha consulta', 'Mensaje']
                       const rows = reservas.map((r: any) => [
