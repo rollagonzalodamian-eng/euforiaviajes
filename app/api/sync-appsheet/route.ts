@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { redis } from '@/lib/redis'
 
+export const maxDuration = 60
+
 const APP_ID = 'd3b75a41-2f08-45be-9325-27af6a1c023e'
 const API_URL = `https://api.appsheet.com/api/v2/apps/${APP_ID}/tables/Salidas/Action`
 
@@ -33,8 +35,8 @@ function mapearSalida(row: Record<string, string>, index: number) {
     id: row['Row ID'] || String(index),
     titulo: fixEncoding(row['TÃ­tulo'] || row['Título'] || row['Titulo'] || ''),
     categoria: fixEncoding(row['CategorÃ­a'] || row['Categoría'] || row['Categoria'] || ''),
-    destacado: row['Destacado'] === 'Si' || row['Destacado'] === 'Yes' || row['Destacado'] === 'TRUE',
-    enPromocion: row['En PromociÃ³n'] === 'Si' || row['En Promoción'] === 'Si',
+    destacado: ['Si', 'Yes', 'TRUE', 'true', '1'].includes(row['Destacado'] || ''),
+    enPromocion: ['Si', 'Yes', 'TRUE', 'true', '1'].includes(row['En PromociÃ³n'] || row['En Promoción'] || row['En Promocion'] || ''),
     destino: fixEncoding(row['Destino'] || row['SubcategorÃ­as'] || ''),
     descripcion: fixEncoding(row['DescripciÃ³n'] || row['Descripción'] || row['Descripcion'] || ''),
     pais: fixEncoding(row['PaÃ­s'] || row['País'] || row['Pais'] || 'Argentina'),
@@ -95,12 +97,23 @@ export async function POST(req: NextRequest) {
         }),
       })
 
+      const rawText = await res.text()
+
       if (!res.ok) {
-        const err = await res.text()
-        return NextResponse.json({ ok: false, error: `AppSheet error ${res.status}: ${err}` })
+        return NextResponse.json({ ok: false, error: `AppSheet error ${res.status}: ${rawText.slice(0, 300)}` })
       }
 
-      const data = await res.json()
+      if (!rawText || rawText.trim() === '') {
+        return NextResponse.json({ ok: false, error: 'AppSheet devolvió respuesta vacía. Verificá la API Key y el ID de la app.' })
+      }
+
+      let data: any
+      try {
+        data = JSON.parse(rawText)
+      } catch {
+        return NextResponse.json({ ok: false, error: `AppSheet respuesta inválida: ${rawText.slice(0, 200)}` })
+      }
+
       const rows: Record<string, string>[] = Array.isArray(data) ? data : (data.value || data.rows || [])
       if (rows.length === 0) break
       allRows = allRows.concat(rows)

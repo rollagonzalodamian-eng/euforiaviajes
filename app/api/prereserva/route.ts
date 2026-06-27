@@ -16,13 +16,18 @@ export async function POST(req: NextRequest) {
 
   await guardarEnKV({ nombre, email, telefono, cantPasajeros, fechaDeseada, mensaje, paqueteTitulo, paqueteId })
 
-  // Notificacion Telegram
+  // Notificacion Telegram (directo, sin HTTP interno)
   try {
-    await fetch(`${process.env.NEXT_PUBLIC_URL}/api/notify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ titulo: paqueteTitulo, nombre, email, telefono }),
-    })
+    const botToken = process.env.TELEGRAM_BOT_TOKEN
+    const chatId = process.env.TELEGRAM_CHAT_ID
+    if (botToken && chatId) {
+      const texto = `🔔 <b>Nueva pre-reserva</b>\n\n✈️ <b>${paqueteTitulo}</b>\n👤 ${nombre}\n📧 ${email}\n📱 ${telefono}\n👥 ${cantPasajeros} pasajero(s)${fechaDeseada ? `\n📅 ${fechaDeseada}` : ''}`
+      await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: texto, parse_mode: 'HTML' }),
+      })
+    }
   } catch {}
 
   // Email al admin

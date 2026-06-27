@@ -133,7 +133,7 @@ export async function GET() {
         })
       }
 
-      const merged = sync.filter((p: any) => p.linkWeb).map(p => {
+      const merged = sync.map(p => {
         // Prioridad: foto subida manualmente → fallback por destino (ignoramos fotos scrapeadas de WooCommerce)
         const fotoCustom = fotosBase64[p.id] || fotosBulk[p.id]
         const fotoFinal = fotoCustom || getFotoFallback(p)

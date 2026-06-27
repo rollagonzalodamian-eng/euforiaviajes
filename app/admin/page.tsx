@@ -158,7 +158,9 @@ export default function AdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pass }),
       })
-      const data = await res.json()
+      const text = await res.text()
+      let data: any = {}
+      try { data = JSON.parse(text) } catch { data = { ok: false, error: `Error del servidor (${res.status}): ${text.slice(0, 200)}` } }
       if (data.ok) {
         setSyncEstado('ok')
         setSyncInfo({ total: data.total, fecha: data.fecha })
@@ -399,86 +401,175 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* RESUMEN */}
-        {tab === 'stats' && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-800">Resumen</h2>
-              <div className="flex gap-2">
-                <button
-                  onClick={sincronizarAppSheet}
-                  disabled={syncEstado === 'sincronizando'}
-                  className="bg-[#00AEEF] text-white text-sm font-bold px-4 py-2 rounded-lg disabled:opacity-60"
-                >
-                  {syncEstado === 'sincronizando' ? '⏳ Sincronizando...' : '🔄 Sync AppSheet'}
+        {/* RESUMEN / DASHBOARD */}
+        {tab === 'stats' && (() => {
+          const ahora = new Date()
+          const haceSiete = new Date(ahora); haceSiete.setDate(ahora.getDate() - 7)
+          const haceQuince = new Date(ahora); haceQuince.setDate(ahora.getDate() - 15)
+          const hoy = ahora.toDateString()
+
+          const reservasHoy = reservas.filter(r => r.fecha && new Date(r.fecha).toDateString() === hoy)
+          const reservasSemana = reservas.filter(r => r.fecha && new Date(r.fecha) >= haceSiete)
+          const confirmadas = reservas.filter(r => r.estado === 'confirmada')
+          const enGestion = reservas.filter(r => !r.estado || r.estado === 'en_gestion')
+          const canceladas = reservas.filter(r => r.estado === 'cancelada')
+
+          // Top paquetes por cantidad de reservas
+          const conteo: Record<string, number> = {}
+          reservas.forEach(r => { if (r.paqueteTitulo) conteo[r.paqueteTitulo] = (conteo[r.paqueteTitulo] || 0) + 1 })
+          const topPaquetes = Object.entries(conteo).sort((a, b) => b[1] - a[1]).slice(0, 5)
+
+          // Reservas últimos 7 días por día
+          const dias: { label: string; count: number }[] = []
+          for (let i = 6; i >= 0; i--) {
+            const d = new Date(ahora); d.setDate(ahora.getDate() - i)
+            const label = d.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric' })
+            const count = reservas.filter(r => r.fecha && new Date(r.fecha).toDateString() === d.toDateString()).length
+            dias.push({ label, count })
+          }
+          const maxDia = Math.max(...dias.map(d => d.count), 1)
+
+          return (
+            <div>
+              {/* Acciones rápidas */}
+              <div className="flex gap-2 mb-5 flex-wrap">
+                <button onClick={sincronizarAppSheet} disabled={syncEstado === 'sincronizando'}
+                  className="bg-[#00AEEF] text-white text-sm font-bold px-4 py-2 rounded-xl disabled:opacity-60 flex items-center gap-2">
+                  {syncEstado === 'sincronizando' ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"/>Sincronizando...</> : '🔄 Sync AppSheet'}
                 </button>
-                <button
-                  onClick={sincronizarFotos}
-                  disabled={syncFotosEstado === 'sincronizando'}
-                  className="bg-purple-600 text-white text-sm font-bold px-4 py-2 rounded-lg disabled:opacity-60"
-                >
+                <button onClick={sincronizarFotos} disabled={syncFotosEstado === 'sincronizando'}
+                  className="bg-purple-600 text-white text-sm font-bold px-4 py-2 rounded-xl disabled:opacity-60">
                   {syncFotosEstado === 'sincronizando' ? '⏳ Buscando fotos...' : '🖼️ Sync Fotos'}
                 </button>
               </div>
-            </div>
-            {syncFotosEstado === 'ok' && syncFotosInfo && (
-              <div className="mb-3 bg-purple-100 text-purple-700 px-4 py-3 rounded-lg text-sm">
-                🖼️ Fotos actualizadas: {syncFotosInfo.actualizados} de {syncFotosInfo.total} paquetes sin foto. Apretá de nuevo para continuar con los siguientes 50.
-              </div>
-            )}
-            {syncFotosEstado === 'error' && syncFotosInfo && (
-              <div className="mb-3 bg-red-100 text-red-700 px-4 py-3 rounded-lg text-sm">
-                ❌ {syncFotosInfo.error}
-              </div>
-            )}
-            {syncEstado === 'ok' && syncInfo && (
-              <div className="mb-4 bg-green-100 text-green-700 px-4 py-3 rounded-lg text-sm">
-                ✅ Sincronizado: {syncInfo.total} paquetes actualizados desde AppSheet
-              </div>
-            )}
-            {syncEstado === 'error' && syncInfo && (
-              <div className="mb-4 bg-red-100 text-red-700 px-4 py-3 rounded-lg text-sm">
-                ❌ Error: {syncInfo.error}
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <div className="bg-white rounded-xl p-4 shadow-sm border">
-                <div className="text-3xl font-bold text-[#00AEEF]">{paquetes.length}</div>
-                <div className="text-gray-600 text-sm">Paquetes totales</div>
-              </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm border">
-                <div className="text-3xl font-bold text-green-500">{reservas.length}</div>
-                <div className="text-gray-600 text-sm">Pre-reservas</div>
-              </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm border">
-                <div className="text-3xl font-bold text-purple-500">{conFoto}</div>
-                <div className="text-gray-600 text-sm">Con foto</div>
-              </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm border">
-                <div className="text-3xl font-bold text-orange-500">{categorias.length}</div>
-                <div className="text-gray-600 text-sm">Categorías</div>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border">
-              <h3 className="font-semibold text-gray-700 mb-3">Por categoría</h3>
-              {categorias.sort().map(cat => {
-                const count = paquetes.filter(p => p.categoria === cat).length
-                return (
-                  <div key={cat} className="flex items-center gap-3 mb-2">
-                    <span className="text-sm text-gray-600 w-40 truncate">{cat}</span>
-                    <div className="flex-1 bg-gray-100 rounded-full h-2">
-                      <div
-                        className="bg-[#00AEEF] h-2 rounded-full"
-                        style={{ width: `${(count / paquetes.length) * 100}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium text-gray-700 w-6 text-right">{count}</span>
+
+              {syncEstado === 'ok' && syncInfo && <div className="mb-4 bg-green-100 text-green-700 px-4 py-3 rounded-xl text-sm">✅ {syncInfo.total} paquetes sincronizados desde AppSheet</div>}
+              {syncEstado === 'error' && syncInfo && <div className="mb-4 bg-red-100 text-red-700 px-4 py-3 rounded-xl text-sm">❌ {syncInfo.error}</div>}
+              {syncFotosEstado === 'ok' && syncFotosInfo && <div className="mb-4 bg-purple-100 text-purple-700 px-4 py-3 rounded-xl text-sm">🖼️ {syncFotosInfo.actualizados} fotos actualizadas de {syncFotosInfo.total} paquetes</div>}
+
+              {/* KPIs principales */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                {[
+                  { label: 'Total reservas', value: reservas.length, color: 'text-[#00AEEF]', bg: 'bg-blue-50', icon: '📋' },
+                  { label: 'Esta semana', value: reservasSemana.length, color: 'text-green-600', bg: 'bg-green-50', icon: '📈' },
+                  { label: 'Hoy', value: reservasHoy.length, color: 'text-orange-500', bg: 'bg-orange-50', icon: '🕐' },
+                  { label: 'Paquetes activos', value: paquetes.length, color: 'text-purple-600', bg: 'bg-purple-50', icon: '✈️' },
+                ].map(k => (
+                  <div key={k.label} className={`${k.bg} rounded-2xl p-4 border border-white shadow-sm`}>
+                    <div className="text-2xl mb-1">{k.icon}</div>
+                    <div className={`text-3xl font-black ${k.color}`}>{k.value}</div>
+                    <div className="text-gray-500 text-xs mt-1 font-medium">{k.label}</div>
                   </div>
-                )
-              })}
+                ))}
+              </div>
+
+              {/* Estados de reservas */}
+              <div className="bg-white rounded-2xl shadow-sm border p-5 mb-5">
+                <h3 className="font-bold text-gray-700 mb-4">Estado de reservas</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="text-center bg-yellow-50 rounded-xl p-3">
+                    <p className="text-2xl font-black text-yellow-600">{enGestion.length}</p>
+                    <p className="text-xs text-yellow-700 font-semibold mt-1">⏳ En gestión</p>
+                  </div>
+                  <div className="text-center bg-green-50 rounded-xl p-3">
+                    <p className="text-2xl font-black text-green-600">{confirmadas.length}</p>
+                    <p className="text-xs text-green-700 font-semibold mt-1">✅ Confirmadas</p>
+                  </div>
+                  <div className="text-center bg-red-50 rounded-xl p-3">
+                    <p className="text-2xl font-black text-red-500">{canceladas.length}</p>
+                    <p className="text-xs text-red-600 font-semibold mt-1">❌ Canceladas</p>
+                  </div>
+                </div>
+                {reservas.length > 0 && (
+                  <div className="mt-4">
+                    <div className="flex rounded-full overflow-hidden h-3">
+                      {confirmadas.length > 0 && <div className="bg-green-400 transition-all" style={{ width: `${confirmadas.length / reservas.length * 100}%` }} />}
+                      {enGestion.length > 0 && <div className="bg-yellow-400 transition-all" style={{ width: `${enGestion.length / reservas.length * 100}%` }} />}
+                      {canceladas.length > 0 && <div className="bg-red-400 transition-all" style={{ width: `${canceladas.length / reservas.length * 100}%` }} />}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1 text-right">
+                      {reservas.length > 0 ? Math.round(confirmadas.length / reservas.length * 100) : 0}% conversión
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Actividad últimos 7 días */}
+              <div className="bg-white rounded-2xl shadow-sm border p-5 mb-5">
+                <h3 className="font-bold text-gray-700 mb-4">📊 Actividad últimos 7 días</h3>
+                <div className="flex items-end gap-2 h-24">
+                  {dias.map((d, i) => (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <span className="text-xs font-bold text-[#00AEEF]">{d.count > 0 ? d.count : ''}</span>
+                      <div className="w-full rounded-t-lg transition-all"
+                        style={{ height: `${(d.count / maxDia) * 64}px`, backgroundColor: d.count > 0 ? '#00AEEF' : '#e5e7eb', minHeight: '4px' }} />
+                      <span className="text-[9px] text-gray-400 text-center leading-tight">{d.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Top paquetes */}
+              {topPaquetes.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm border p-5 mb-5">
+                  <h3 className="font-bold text-gray-700 mb-4">🏆 Paquetes más consultados</h3>
+                  <div className="space-y-3">
+                    {topPaquetes.map(([titulo, count], i) => (
+                      <div key={titulo} className="flex items-center gap-3">
+                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white shrink-0
+                          ${i === 0 ? 'bg-yellow-400' : i === 1 ? 'bg-gray-400' : i === 2 ? 'bg-orange-400' : 'bg-[#00AEEF]/30'}`}>
+                          {i + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-700 truncate">{titulo}</p>
+                          <div className="w-full bg-gray-100 rounded-full h-1.5 mt-1">
+                            <div className="bg-[#00AEEF] h-1.5 rounded-full" style={{ width: `${(count / topPaquetes[0][1]) * 100}%` }} />
+                          </div>
+                        </div>
+                        <span className="text-sm font-black text-[#00AEEF] shrink-0">{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Últimas reservas */}
+              {reservas.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm border p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-gray-700">🕐 Últimas consultas</h3>
+                    <button onClick={() => setTab('reservas')} className="text-xs text-[#00AEEF] font-semibold">Ver todas →</button>
+                  </div>
+                  <div className="space-y-3">
+                    {[...reservas].reverse().slice(0, 4).map((r, i) => (
+                      <div key={i} className="flex items-center gap-3 py-2 border-b last:border-0">
+                        <div className="w-9 h-9 rounded-full bg-[#E0F6FF] flex items-center justify-center text-sm font-black text-[#00AEEF] shrink-0">
+                          {r.nombre?.[0]?.toUpperCase() || '?'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-800 truncate">{r.nombre}</p>
+                          <p className="text-xs text-gray-400 truncate">{r.paqueteTitulo}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            r.estado === 'confirmada' ? 'bg-green-100 text-green-700' :
+                            r.estado === 'cancelada' ? 'bg-red-100 text-red-600' :
+                            'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {r.estado === 'confirmada' ? '✅' : r.estado === 'cancelada' ? '❌' : '⏳'}
+                          </span>
+                          <p className="text-[10px] text-gray-400 mt-0.5">
+                            {r.fecha ? new Date(r.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : ''}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          )
+        })()}
 
         {/* FOTOS */}
         {tab === 'fotos' && (
