@@ -25,12 +25,21 @@ function formatFecha(f: string) {
   return `${d} ${meses[m - 1]} ${y}`
 }
 
+const RANGOS_PRECIO = [
+  { label: 'Todos los precios', min: 0, max: Infinity },
+  { label: 'Hasta USD 500', min: 0, max: 500 },
+  { label: 'USD 500 – 1.000', min: 500, max: 1000 },
+  { label: 'USD 1.000 – 2.000', min: 1000, max: 2000 },
+  { label: 'Más de USD 2.000', min: 2000, max: Infinity },
+]
+
 function SalidasInner() {
   const searchParams = useSearchParams()
   const [paquetes, setPaquetes] = useState<Paquete[]>([])
   const [cargando, setCargando] = useState(true)
   const [categoria, setCategoria] = useState('Todas')
   const [busqueda, setBusqueda] = useState(searchParams.get('q') || '')
+  const [rangoIdx, setRangoIdx] = useState(0)
 
   useEffect(() => {
     fetch('/api/paquetes').then(r => r.json()).then((data: Paquete[]) => {
@@ -50,12 +59,17 @@ function SalidasInner() {
     return isNaN(date.getTime()) ? Infinity : date.getTime()
   }
 
-  const filtrados = useMemo(() => paquetes.filter(p => {
-    const cat = categoria === 'Todas' || p.categoria === categoria
-    const texto = busqueda.toLowerCase()
-    const match = !texto || p.titulo.toLowerCase().includes(texto) || p.destino.toLowerCase().includes(texto)
-    return cat && match
-  }).sort((a, b) => parseFechaOrden(a.fecha) - parseFechaOrden(b.fecha)), [categoria, busqueda, paquetes])
+  const filtrados = useMemo(() => {
+    const rango = RANGOS_PRECIO[rangoIdx]
+    return paquetes.filter(p => {
+      const cat = categoria === 'Todas' || p.categoria === categoria
+      const texto = busqueda.toLowerCase()
+      const match = !texto || p.titulo.toLowerCase().includes(texto) || p.destino.toLowerCase().includes(texto)
+      const precioUSD = parseFloat(p.precioUSD) || parseFloat(p.precioARS) / 1400 || 0
+      const precio = rangoIdx === 0 || precioUSD === 0 || (precioUSD >= rango.min && precioUSD <= rango.max)
+      return cat && match && precio
+    }).sort((a, b) => parseFechaOrden(a.fecha) - parseFechaOrden(b.fecha))
+  }, [categoria, busqueda, paquetes, rangoIdx])
 
   return (
     <div className="min-h-screen">
@@ -73,8 +87,8 @@ function SalidasInner() {
       </section>
 
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Filtros */}
-        <div className="flex gap-2 flex-wrap mb-6">
+        {/* Filtros categoría */}
+        <div className="flex gap-2 flex-wrap mb-3">
           {categorias.map(c => (
             <button key={c} onClick={() => setCategoria(c)}
               className="px-3 py-1.5 rounded-full text-xs font-bold border transition"
@@ -85,6 +99,21 @@ function SalidasInner() {
             </button>
           ))}
         </div>
+
+        {/* Filtro precio */}
+        <div className="flex gap-2 flex-wrap mb-5 items-center">
+          <span className="text-xs text-gray-500 font-semibold">💰 Presupuesto:</span>
+          {RANGOS_PRECIO.map((r, i) => (
+            <button key={i} onClick={() => setRangoIdx(i)}
+              className="px-3 py-1.5 rounded-full text-xs font-bold border transition"
+              style={rangoIdx === i
+                ? { backgroundColor: '#0090C5', color: 'white', borderColor: '#0090C5' }
+                : { backgroundColor: 'white', color: '#555', borderColor: '#ddd' }}>
+              {r.label}
+            </button>
+          ))}
+        </div>
+
         <p className="text-xs text-gray-400 mb-4">{filtrados.length} salidas disponibles</p>
 
         {cargando ? (
