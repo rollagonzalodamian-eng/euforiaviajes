@@ -377,7 +377,7 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="flex border-b bg-white">
-        {([['stats', 'Resumen'], ['fotos', 'Fotos'], ['reservas', 'Reservas'], ['campanas', '📣 Campañas'], ['resenas', 'Reseñas'], ['cupones', 'Cupones'], ['config', 'Config']] as const).map(([key, label]) => (
+        {([['stats', 'Resumen'], ['fotos', 'Fotos'], ['reservas', 'Reservas'], ['campanas', '📣 Campañas'], ['usuarios', '👥 Usuarios'], ['resenas', 'Reseñas'], ['cupones', 'Cupones'], ['config', 'Config']] as const).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
