@@ -225,9 +225,18 @@ export default function Home() {
               ))}
               <select value={ordenPrecio} onChange={e => setOrdenPrecio(e.target.value)}
                 className="px-3 py-1.5 rounded-full text-xs font-bold border border-gray-200 bg-white text-gray-600 outline-none">
-                <option value="">Precio</option>
+                <option value="">Ordenar precio</option>
                 <option value="asc">↑ Menor precio</option>
                 <option value="desc">↓ Mayor precio</option>
+              </select>
+              <select value={precioMin} onChange={e => setPrecioMin(Number(e.target.value))}
+                className="px-3 py-1.5 rounded-full text-xs font-bold border border-gray-200 bg-white text-gray-600 outline-none">
+                <option value={0}>Desde (USD)</option>
+                <option value={500}>Desde USD 500</option>
+                <option value={1000}>Desde USD 1.000</option>
+                <option value={2000}>Desde USD 2.000</option>
+                <option value={3000}>Desde USD 3.000</option>
+                <option value={5000}>Desde USD 5.000</option>
               </select>
               <button onClick={() => setMoneda(m => m === 'USD' ? 'ARS' : 'USD')}
                 className="px-3 py-1.5 rounded-full text-xs font-bold border transition"
@@ -333,7 +342,7 @@ export default function Home() {
           <div className="text-center py-20 text-gray-400">
             <p className="text-4xl mb-3">🔍</p>
             <p className="font-semibold">No encontramos paquetes para esa búsqueda.</p>
-            <button onClick={() => { setBusqueda(''); setCategoria('Todos'); setTransporte('Todos') }}
+            <button onClick={() => { setBusqueda(''); setCategoria('Todos'); setTransporte('Todos'); setPrecioMin(0) }}
               className="mt-4 underline text-sm" style={{ color: '#00AEEF' }}>
               Limpiar filtros
             </button>
