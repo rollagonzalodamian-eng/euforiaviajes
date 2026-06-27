@@ -101,7 +101,7 @@ export default function Home() {
 
           {/* Stats */}
           <div className="flex justify-center gap-8 mt-10 text-center">
-            {[[`${paquetes.length > 0 ? paquetes.length + '+' : '300+'}`, 'paquetes'], ['15+', 'años de experiencia'], ['5000+', 'viajeros']].map(([n, l]) => (
+            {[[`${paquetes.length > 0 ? paquetes.length + '+' : '300+'}`, 'paquetes'], ['11 años', 'de experiencia'], ['+6000', 'pasajeros']].map(([n, l]) => (
               <div key={l}>
                 <p className="text-2xl font-black">{n}</p>
                 <p className="text-xs opacity-70">{l}</p>
