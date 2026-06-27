@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
   try {
     // Traer todas las filas con paginación (AppSheet limita por defecto)
     let allRows: Record<string, string>[] = []
-    let page = 0
+    let page = 1
     const pageSize = 100
 
     while (true) {
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({
           Action: 'Find',
-          Properties: { Locale: 'es-AR', PageSize: pageSize, Page: page },
+          Properties: { PageSize: pageSize, Page: page },
           Rows: [],
         }),
       })
@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (!rawText || rawText.trim() === '') {
-        return NextResponse.json({ ok: false, error: 'AppSheet devolvió respuesta vacía. Verificá la API Key y el ID de la app.' })
+        return NextResponse.json({ ok: false, error: `AppSheet devolvió respuesta vacía. Status: ${res.status}. URL: ${API_URL}` })
       }
 
       let data: any
