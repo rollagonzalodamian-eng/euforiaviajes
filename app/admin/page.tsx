@@ -29,7 +29,7 @@ export default function AdminPage() {
   const [pass, setPass] = useState('')
   const [paquetes, setPaquetes] = useState<Paquete[]>([])
   const [autenticado, setAutenticado] = useState(false)
-  const [tab, setTab] = useState<'fotos' | 'reservas' | 'stats' | 'config' | 'resenas' | 'cupones' | 'usuarios'>('stats')
+  const [tab, setTab] = useState<'fotos' | 'reservas' | 'stats' | 'config' | 'resenas' | 'cupones' | 'usuarios' | 'campanas'>('stats')
   const [usuarios, setUsuarios] = useState<any[]>([])
   const [cargandoUsuarios, setCargandoUsuarios] = useState(false)
   const [resenas, setResenas] = useState<any[]>([])
@@ -377,7 +377,7 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="flex border-b bg-white">
-        {([['stats', 'Resumen'], ['fotos', 'Fotos'], ['reservas', 'Reservas'], ['usuarios', 'Usuarios'], ['resenas', 'Reseñas'], ['cupones', 'Cupones'], ['config', 'Config']] as const).map(([key, label]) => (
+        {([['stats', 'Resumen'], ['fotos', 'Fotos'], ['reservas', 'Reservas'], ['campanas', '📣 Campañas'], ['resenas', 'Reseñas'], ['cupones', 'Cupones'], ['config', 'Config']] as const).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
@@ -1185,6 +1185,119 @@ export default function AdminPage() {
                 })}
               </div>
             )}
+          </div>
+          )
+        })()}
+
+        {/* CAMPAÑAS */}
+        {tab === 'campanas' && (() => {
+          const ETAPAS_LABELS: Record<number, string> = {
+            1: 'Nueva consulta', 2: 'Cotización enviada', 3: 'Confirmado', 4: 'No confirmó', 5: 'Lead frío'
+          }
+          const [campAsunto, setCampAsunto] = useState('✈️ Tenemos algo especial para vos')
+          const [campCuerpo, setCampCuerpo] = useState('Hola {nombre}!\n\nQueremos contarte sobre nuestras últimas salidas disponibles.\n\n¡Escribinos y te armamos un viaje a tu medida!')
+          const [campEtapas, setCampEtapas] = useState<number[]>([5])
+          const [campPaqueteId, setCampPaqueteId] = useState('')
+          const [campEstado, setCampEstado] = useState<'idle'|'enviando'|'ok'|'error'>('idle')
+          const [campResultado, setCampResultado] = useState<any>(null)
+
+          const destinatariosCount = (() => {
+            const vistos = new Set<string>()
+            return reservas.filter(r => {
+              const etapa = (r as any).etapa || 1
+              if (!campEtapas.includes(etapa)) return false
+              if (vistos.has(r.email)) return false
+              vistos.add(r.email)
+              return true
+            }).length
+          })()
+
+          return (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-lg font-bold text-gray-800 mb-1">📣 Campañas de email</h2>
+              <p className="text-xs text-gray-400">Enviá un email personalizado a tus contactos según su etapa en el CRM.</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-5">
+              {/* Config campaña */}
+              <div className="space-y-4">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <h3 className="font-bold text-gray-700 text-sm mb-4">1. ¿A quién enviás?</h3>
+                  <div className="space-y-2">
+                    {[1,2,3,4,5].map(e => (
+                      <label key={e} className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={campEtapas.includes(e)}
+                          onChange={ev => setCampEtapas(prev => ev.target.checked ? [...prev, e] : prev.filter(x => x !== e))}
+                          className="accent-[#00AEEF] w-4 h-4" />
+                        <span className="text-sm text-gray-700">{ETAPAS_LABELS[e]}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="mt-3 bg-blue-50 rounded-xl px-3 py-2 text-xs text-[#00AEEF] font-bold">
+                    {destinatariosCount} destinatario{destinatariosCount !== 1 ? 's' : ''} (sin duplicados)
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <h3 className="font-bold text-gray-700 text-sm mb-3">2. Paquete a destacar (opcional)</h3>
+                  <select value={campPaqueteId} onChange={e => setCampPaqueteId(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#00AEEF]">
+                    <option value="">Sin paquete destacado</option>
+                    {paquetes.slice(0,30).map(p => (
+                      <option key={p.id} value={p.id}>{p.titulo}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-400 mt-1">Aparece como card con foto, precio y botón de reserva.</p>
+                </div>
+              </div>
+
+              {/* Redacción */}
+              <div className="space-y-4">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <h3 className="font-bold text-gray-700 text-sm mb-3">3. Redactá el email</h3>
+                  <div className="mb-3">
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Asunto</label>
+                    <input type="text" value={campAsunto} onChange={e => setCampAsunto(e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#00AEEF]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                      Mensaje <span className="text-gray-400 font-normal">— usá {'{nombre}'} para personalizar</span>
+                    </label>
+                    <textarea rows={7} value={campCuerpo} onChange={e => setCampCuerpo(e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#00AEEF] resize-none font-mono" />
+                  </div>
+                </div>
+
+                <button
+                  disabled={campEstado === 'enviando' || destinatariosCount === 0 || !campAsunto.trim()}
+                  onClick={async () => {
+                    if (!confirm(`¿Enviás "${campAsunto}" a ${destinatariosCount} contactos?`)) return
+                    setCampEstado('enviando')
+                    setCampResultado(null)
+                    const res = await fetch('/api/admin/email-masivo', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ pass, etapas: campEtapas, asunto: campAsunto, cuerpo: campCuerpo, paqueteDestacadoId: campPaqueteId || null }),
+                    })
+                    const d = await res.json()
+                    setCampResultado(d)
+                    setCampEstado(d.ok ? 'ok' : 'error')
+                  }}
+                  className="w-full bg-[#00AEEF] text-white font-bold py-3.5 rounded-2xl text-sm disabled:opacity-50 transition hover:bg-[#0090C5]">
+                  {campEstado === 'enviando' ? '⏳ Enviando...' : `📤 Enviar a ${destinatariosCount} contactos`}
+                </button>
+
+                {campResultado && (
+                  <div className={`rounded-2xl p-4 text-sm text-center ${campResultado.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+                    {campResultado.ok
+                      ? `✅ ${campResultado.enviados} emails enviados${campResultado.errores > 0 ? ` · ${campResultado.errores} errores` : ''}`
+                      : `❌ ${campResultado.error}`}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           )
         })()}
