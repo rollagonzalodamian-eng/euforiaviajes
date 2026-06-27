@@ -1031,6 +1031,13 @@ export default function AdminPage() {
               </div>
               <div className="flex gap-2 flex-wrap">
                 <button onClick={cargarReservas} className="text-[#00AEEF] text-sm font-medium">↻ Actualizar</button>
+                <button onClick={async () => {
+                  const res = await fetch('/api/admin/reservas', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pass }) })
+                  const d = await res.json()
+                  setMensaje(d.ok ? `✅ ${d.migradas} consultas migradas` : '❌ Error')
+                  setTimeout(() => setMensaje(''), 4000)
+                  cargarReservas()
+                }} className="text-gray-400 text-xs font-medium border border-gray-200 px-2 py-1 rounded-lg hover:border-[#00AEEF] hover:text-[#00AEEF] transition">🔧 Migrar IDs</button>
                 {reservas.length > 0 && (
                   <button
                     onClick={() => {

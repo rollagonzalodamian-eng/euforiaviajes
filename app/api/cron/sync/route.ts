@@ -31,13 +31,13 @@ function extraerUrl(campo: any): string {
 function mapearSalida(row: Record<string, string>, index: number) {
   return {
     id: row['Row ID'] || String(index),
-    titulo: fixEncoding(row['TÃ­tulo'] || row['Título'] || ''),
-    categoria: fixEncoding(row['CategorÃ­a'] || row['Categoría'] || ''),
-    destacado: row['Destacado'] === 'Si',
-    enPromocion: row['En PromociÃ³n'] === 'Si' || row['En Promoción'] === 'Si',
-    destino: fixEncoding(row['Destino'] || ''),
-    descripcion: fixEncoding(row['DescripciÃ³n'] || row['Descripción'] || ''),
-    pais: fixEncoding(row['PaÃ­s'] || row['País'] || 'Argentina'),
+    titulo: fixEncoding(row['TÃ­tulo'] || row['Título'] || row['Titulo'] || ''),
+    categoria: fixEncoding(row['CategorÃ­a'] || row['Categoría'] || row['Categoria'] || ''),
+    destacado: ['Si', 'Yes', 'TRUE', 'true', '1'].includes(row['Destacado'] || ''),
+    enPromocion: ['Si', 'Yes', 'TRUE', 'true', '1'].includes(row['En PromociÃ³n'] || row['En Promoción'] || row['En Promocion'] || ''),
+    destino: fixEncoding(row['Destino'] || row['SubcategorÃ­as'] || ''),
+    descripcion: fixEncoding(row['DescripciÃ³n'] || row['Descripción'] || row['Descripcion'] || ''),
+    pais: fixEncoding(row['PaÃ­s'] || row['País'] || row['Pais'] || 'Argentina'),
     origen: fixEncoding(row['Origen'] || ''),
     transporte: fixEncoding(row['Transporte'] || ''),
     servicio: fixEncoding(row['Servicio'] || ''),
@@ -46,13 +46,14 @@ function mapearSalida(row: Record<string, string>, index: number) {
     promoUSD: row['Promo Efectivo USD'] || '',
     precioARS: row['Precio Lista ARS'] || '',
     promoARS: row['Promo Efectivo ARS'] || '',
-    linkWeb: extraerUrl(row['Enlace WooCoommerce'] || ''),
+    linkWeb: extraerUrl(row['Enlace WooCoommerce'] || row['Enlace WooCommerce'] || ''),
     itinerario: extraerUrl(row['Itinerario'] || ''),
     fecha: row['Fecha'] || '',
     vendedor: row['Vendedor'] || '',
     disponible: row['Estado'] || 'Disponible',
+    cupos: row['Cupos'] || row['Cupo'] || row['CuposDisponibles'] || row['Cupos Disponibles'] || '',
+    urlImagenes: extraerUrl(row['URL Imagenes'] || row['ImÃ¡genes y Videos'] || row['Imágenes y Videos'] || ''),
     foto: extraerUrl(row['URL Imagenes'] || row['ImÃ¡genes y Videos'] || ''),
-    urlImagenes: extraerUrl(row['URL Imagenes'] || ''),
   }
 }
 
@@ -69,10 +70,18 @@ export async function GET(req: NextRequest) {
       headers: { 'ApplicationAccessKey': apiKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({ Action: 'Find', Properties: {}, Rows: [] }),
     })
-    if (!res.ok) return NextResponse.json({ ok: false, error: res.status })
-    const data = await res.json()
+    const rawText = await res.text()
+    if (!res.ok || !rawText.trim()) return NextResponse.json({ ok: false, error: res.status })
+    const data = JSON.parse(rawText)
     const rows: Record<string, string>[] = Array.isArray(data) ? data : (data.value || data.rows || [])
-    const paquetes = rows.map(mapearSalida).filter(p => p.titulo)
+    const mapped = rows.map(mapearSalida).filter(p => p.titulo)
+    const vistos = new Set<string>()
+    const paquetes = mapped.filter(p => {
+      const key = `${p.titulo.toLowerCase().trim()}|${p.fecha}`
+      if (vistos.has(key)) return false
+      vistos.add(key)
+      return true
+    })
     await redis.set('paquetes_sync', paquetes)
     await redis.set('paquetes_sync_fecha', new Date().toISOString())
     return NextResponse.json({ ok: true, total: paquetes.length })

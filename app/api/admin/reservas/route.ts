@@ -21,6 +21,25 @@ export async function DELETE(req: NextRequest) {
   }
 }
 
+// Migra prereservas sin id asignándoles uno
+export async function PATCH(req: NextRequest) {
+  const { pass } = await req.json()
+  if (pass !== process.env.ADMIN_PASS) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  try {
+    const reservas = await redis.lrange<any>('reservas', 0, -1) || []
+    let migradas = 0
+    const updated = reservas.map((r: any) => {
+      if (!r.id) { migradas++; return { ...r, id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}` } }
+      return r
+    })
+    await redis.del('reservas')
+    for (const r of [...updated].reverse()) await redis.lpush('reservas', r)
+    return NextResponse.json({ ok: true, migradas })
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: e.message }, { status: 500 })
+  }
+}
+
 export async function POST(req: NextRequest) {
   const { pass, email, paqueteId, estado } = await req.json()
   if (pass !== process.env.ADMIN_PASS) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

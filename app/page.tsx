@@ -69,7 +69,7 @@ export default function Home() {
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1488085061387-422e29b40080?w=1400&q=60&fit=crop)', backgroundSize: 'cover', backgroundPosition: 'center' }} />
         <div className="relative max-w-5xl mx-auto px-4 py-16 md:py-24 text-center">
           <div className="inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5 text-xs font-semibold mb-5 backdrop-blur-sm">
-            ✈️ Más de 327 paquetes disponibles
+            ✈️ {paquetes.length > 0 ? `Más de ${paquetes.length} paquetes disponibles` : 'Paquetes nacionales e internacionales'}
           </div>
           <h1 className="text-4xl md:text-5xl font-black mb-3 leading-tight">
             Viajá con Euforia.<br />
