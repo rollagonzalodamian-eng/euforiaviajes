@@ -62,6 +62,7 @@ export default function AdminPage() {
   const [mensaje, setMensaje] = useState('')
   const [error, setError] = useState('')
   const [vistaReservas, setVistaReservas] = useState<'pipeline' | 'lista'>('pipeline')
+  const [pedidoSeleccionado, setPedidoSeleccionado] = useState<any | null>(null)
 
   async function login() {
     const res = await fetch('/api/admin/fotos', { headers: { 'x-admin-pass': pass } })
@@ -1179,6 +1180,12 @@ export default function AdminPage() {
                       )}
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className={`text-xs font-bold px-2 py-1 rounded-full ${etapa.badge}`}>{etapa.label}</span>
+                        {r.mensaje && (
+                          <button onClick={() => setPedidoSeleccionado(r)}
+                            className="text-xs font-bold px-3 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition">
+                            📋 Ver pedido
+                          </button>
+                        )}
                         {(r.etapa === 1 || r.etapa === 2) && (
                           <button onClick={() => enviarCotizacion(r)}
                             className="text-xs font-bold px-3 py-1 rounded-lg bg-[#00AEEF] text-white">
@@ -1197,6 +1204,46 @@ export default function AdminPage() {
               </div>
             )}
           </div>
+
+          {/* MODAL VER PEDIDO */}
+          {pedidoSeleccionado && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setPedidoSeleccionado(null)}>
+              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <div className="bg-[#00AEEF] rounded-t-2xl px-5 py-4 flex items-start justify-between">
+                  <div>
+                    <p className="text-white font-bold text-base">{pedidoSeleccionado.nombre}</p>
+                    <p className="text-white/80 text-xs">{pedidoSeleccionado.paqueteTitulo}</p>
+                  </div>
+                  <button onClick={() => setPedidoSeleccionado(null)} className="text-white/80 hover:text-white text-xl leading-none">✕</button>
+                </div>
+                <div className="px-5 py-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                    <span>📧 {pedidoSeleccionado.email}</span>
+                    <span>📱 {pedidoSeleccionado.telefono}</span>
+                    <span>👥 {pedidoSeleccionado.cantPasajeros} pasajero{pedidoSeleccionado.cantPasajeros > 1 ? 's' : ''}</span>
+                    {pedidoSeleccionado.fechaDeseada && <span>📅 {pedidoSeleccionado.fechaDeseada}</span>}
+                  </div>
+                  {pedidoSeleccionado.mensaje && (
+                    <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                      <p className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Detalle del pedido</p>
+                      <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{pedidoSeleccionado.mensaje}</p>
+                    </div>
+                  )}
+                  <div className="flex gap-2 pt-1">
+                    <a href={`https://wa.me/54${pedidoSeleccionado.telefono?.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${pedidoSeleccionado.nombre}! Te contactamos por tu consulta de ${pedidoSeleccionado.paqueteTitulo}.`)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="flex-1 bg-green-500 text-white text-xs font-bold py-2 rounded-xl text-center">
+                      💬 WhatsApp
+                    </a>
+                    <button onClick={() => { enviarCotizacion(pedidoSeleccionado); setPedidoSeleccionado(null) }}
+                      className="flex-1 bg-[#00AEEF] text-white text-xs font-bold py-2 rounded-xl">
+                      ✉️ Enviar cotización
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           )
         })()}
 
