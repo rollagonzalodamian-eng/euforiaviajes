@@ -64,6 +64,7 @@ export default function AdminPage() {
   const [vistaReservas, setVistaReservas] = useState<'pipeline' | 'lista'>('pipeline')
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState<any | null>(null)
   const [textoCotizacion, setTextoCotizacion] = useState('')
+  const [enviandoCotizacion, setEnviandoCotizacion] = useState(false)
 
   async function login() {
     const res = await fetch('/api/admin/fotos', { headers: { 'x-admin-pass': pass } })
@@ -1269,26 +1270,33 @@ export default function AdminPage() {
                     {/* Botones */}
                     <div className="space-y-2">
                       <button
+                        disabled={enviandoCotizacion}
                         onClick={async () => {
                           if (!textoCotizacion.trim()) { alert('Escribí la cotización antes de enviar'); return }
+                          if (enviandoCotizacion) return
+                          setEnviandoCotizacion(true)
                           setMensaje('Enviando cotización por email...')
-                          const res = await fetch('/api/admin/crm', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ pass, id: pedidoSeleccionado.id, textoCotizacion }),
-                          })
-                          const data = await res.json()
-                          if (res.ok) {
-                            setReservas(prev => prev.map((x: any) => x.id === pedidoSeleccionado.id ? { ...x, etapa: 2, cotizacionEnviada: new Date().toISOString() } : x))
-                            setMensaje('✅ Cotización enviada a ' + pedidoSeleccionado.email)
-                            setPedidoSeleccionado(null)
-                            setTextoCotizacion('')
-                          } else {
-                            setMensaje('❌ Error: ' + (data.error || 'no se pudo enviar'))
+                          try {
+                            const res = await fetch('/api/admin/crm', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ pass, id: pedidoSeleccionado.id, textoCotizacion }),
+                            })
+                            const data = await res.json()
+                            if (res.ok) {
+                              setReservas(prev => prev.map((x: any) => x.id === pedidoSeleccionado.id ? { ...x, etapa: 2, cotizacionEnviada: new Date().toISOString() } : x))
+                              setMensaje('✅ Cotización enviada a ' + pedidoSeleccionado.email)
+                              setPedidoSeleccionado(null)
+                              setTextoCotizacion('')
+                            } else {
+                              setMensaje('❌ Error: ' + (data.error || 'no se pudo enviar'))
+                            }
+                          } finally {
+                            setEnviandoCotizacion(false)
                           }
                           setTimeout(() => setMensaje(''), 6000)
                         }}
-                        className="w-full bg-[#00AEEF] text-white text-sm font-bold py-3 rounded-xl">
+                        className={`w-full text-white text-sm font-bold py-3 rounded-xl transition ${enviandoCotizacion ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#00AEEF]'}`}>
                         ✉️ Enviar cotización por email a {pedidoSeleccionado.email}
                       </button>
                       <a href={`https://wa.me/549${pedidoSeleccionado.telefono?.replace(/\D/g,'')}?text=${encodeURIComponent(textoCotizacion || `Hola ${pedidoSeleccionado.nombre}! Te contactamos por tu consulta de ${pedidoSeleccionado.paqueteTitulo}.`)}`}

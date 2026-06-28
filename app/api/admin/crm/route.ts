@@ -30,6 +30,12 @@ export async function POST(req: NextRequest) {
   const reserva = reservas.find((r: any) => r.id === id)
   if (!reserva) return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
 
+  // Idempotencia: no reenviar si ya se mandó en los últimos 2 minutos
+  if (reserva.cotizacionEnviada) {
+    const hace = Date.now() - new Date(reserva.cotizacionEnviada).getTime()
+    if (hace < 2 * 60 * 1000) return NextResponse.json({ error: 'Ya se envió una cotización hace menos de 2 minutos' }, { status: 429 })
+  }
+
   const { Resend } = await import('resend')
   const resend = new Resend(process.env.RESEND_API_KEY)
 
