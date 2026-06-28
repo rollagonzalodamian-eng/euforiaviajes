@@ -1253,12 +1253,7 @@ export default function AdminPage() {
                     </div>
 
                     {/* Botones */}
-                    <div className="flex gap-2">
-                      <a href={`https://wa.me/54${pedidoSeleccionado.telefono?.replace(/\D/g,'')}?text=${encodeURIComponent(textoCotizacion || `Hola ${pedidoSeleccionado.nombre}! Te contactamos por tu consulta de ${pedidoSeleccionado.paqueteTitulo}.`)}`}
-                        target="_blank" rel="noopener noreferrer"
-                        className="flex-1 bg-green-500 text-white text-xs font-bold py-2.5 rounded-xl text-center">
-                        💬 Enviar por WhatsApp
-                      </a>
+                    <div className="space-y-2">
                       <button
                         onClick={async () => {
                           if (!textoCotizacion.trim()) { alert('Escribí la cotización antes de enviar'); return }
@@ -1279,9 +1274,14 @@ export default function AdminPage() {
                           }
                           setTimeout(() => setMensaje(''), 6000)
                         }}
-                        className="flex-1 bg-[#00AEEF] text-white text-xs font-bold py-2.5 rounded-xl">
-                        ✉️ Enviar por email
+                        className="w-full bg-[#00AEEF] text-white text-sm font-bold py-3 rounded-xl">
+                        ✉️ Enviar cotización por email a {pedidoSeleccionado.email}
                       </button>
+                      <a href={`https://wa.me/549${pedidoSeleccionado.telefono?.replace(/\D/g,'')}?text=${encodeURIComponent(textoCotizacion || `Hola ${pedidoSeleccionado.nombre}! Te contactamos por tu consulta de ${pedidoSeleccionado.paqueteTitulo}.`)}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="w-full bg-green-500 text-white text-sm font-bold py-3 rounded-xl text-center block">
+                        💬 Enviar por WhatsApp al {pedidoSeleccionado.telefono}
+                      </a>
                     </div>
                   </div>
                 </div>
