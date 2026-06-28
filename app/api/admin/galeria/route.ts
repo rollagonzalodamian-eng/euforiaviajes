@@ -91,11 +91,8 @@ export async function GET(req: NextRequest) {
     const fotos = await redis.get<string[]>(`galeria:${id}`)
     if (fotos && fotos.length > 0) return NextResponse.json(fotos)
 
-    // Sin fotos manuales → fallback por destino
-    const paquetes = await redis.get<any[]>('paquetes_sync') || []
-    const paquete = paquetes.find(p => p.id === id)
-    const fotosFallback = paquete ? getFotosFallback(paquete) : []
-    return NextResponse.json(fotosFallback)
+    // Sin fotos del admin → no mostrar nada
+    return NextResponse.json([])
   } catch {
     return NextResponse.json([])
   }

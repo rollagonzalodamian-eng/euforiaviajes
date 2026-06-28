@@ -10,10 +10,10 @@ export default function GaleriaFotos({ paqueteId, fotoPortada }: { paqueteId: st
     fetch(`/api/admin/galeria?id=${paqueteId}`)
       .then(r => r.json())
       .then((data: string[]) => {
-        const todas = data.length > 0 ? data : [fotoPortada].filter(Boolean)
-        setFotos(todas)
+        // Solo mostrar galería si el admin subió fotos — no usar fotos por defecto de AppSheet
+        setFotos(data.length > 0 ? data : fotoPortada ? [fotoPortada] : [])
       })
-      .catch(() => setFotos([fotoPortada].filter(Boolean)))
+      .catch(() => setFotos(fotoPortada ? [fotoPortada] : []))
   }, [paqueteId, fotoPortada])
 
   if (fotos.length === 0) return (
