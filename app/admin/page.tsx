@@ -63,6 +63,7 @@ export default function AdminPage() {
   const [error, setError] = useState('')
   const [vistaReservas, setVistaReservas] = useState<'pipeline' | 'lista'>('pipeline')
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState<any | null>(null)
+  const [textoCotizacion, setTextoCotizacion] = useState('')
 
   async function login() {
     const res = await fetch('/api/admin/fotos', { headers: { 'x-admin-pass': pass } })
@@ -1212,37 +1213,74 @@ export default function AdminPage() {
 
             {/* MODAL VER PEDIDO */}
             {pedidoSeleccionado && (
-              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setPedidoSeleccionado(null)}>
-                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => { setPedidoSeleccionado(null); setTextoCotizacion('') }}>
+                <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                   <div className="bg-[#00AEEF] rounded-t-2xl px-5 py-4 flex items-start justify-between">
                     <div>
                       <p className="text-white font-bold text-base">{pedidoSeleccionado.nombre}</p>
                       <p className="text-white/80 text-xs">{pedidoSeleccionado.paqueteTitulo}</p>
                     </div>
-                    <button onClick={() => setPedidoSeleccionado(null)} className="text-white/80 hover:text-white text-xl leading-none">✕</button>
+                    <button onClick={() => { setPedidoSeleccionado(null); setTextoCotizacion('') }} className="text-white/80 hover:text-white text-xl leading-none">✕</button>
                   </div>
-                  <div className="px-5 py-4 space-y-3">
+                  <div className="px-5 py-4 space-y-4">
+
+                    {/* Datos del cliente */}
                     <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                       <span>📧 {pedidoSeleccionado.email}</span>
                       <span>📱 {pedidoSeleccionado.telefono}</span>
                       <span>👥 {pedidoSeleccionado.cantPasajeros} pasajero{pedidoSeleccionado.cantPasajeros > 1 ? 's' : ''}</span>
                       {pedidoSeleccionado.fechaDeseada && <span>📅 {pedidoSeleccionado.fechaDeseada}</span>}
                     </div>
+
+                    {/* Lo que pidió */}
                     {pedidoSeleccionado.mensaje && (
-                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                        <p className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Detalle del pedido</p>
+                      <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                        <p className="text-xs font-bold text-blue-500 mb-2 uppercase tracking-wide">📋 Lo que pidió</p>
                         <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{pedidoSeleccionado.mensaje}</p>
                       </div>
                     )}
-                    <div className="flex gap-2 pt-1">
-                      <a href={`https://wa.me/54${pedidoSeleccionado.telefono?.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${pedidoSeleccionado.nombre}! Te contactamos por tu consulta de ${pedidoSeleccionado.paqueteTitulo}.`)}`}
+
+                    {/* Área para escribir la cotización */}
+                    <div>
+                      <p className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">✏️ Tu cotización</p>
+                      <textarea
+                        value={textoCotizacion}
+                        onChange={e => setTextoCotizacion(e.target.value)}
+                        placeholder={`Hola ${pedidoSeleccionado.nombre}!\n\nCotización para ${pedidoSeleccionado.paqueteTitulo}:\n\n- Precio por persona: USD ...\n- Incluye: ...\n- Fechas disponibles: ...\n\nPara reservar se abona una seña del 15%.\n\nSaludos, Euforia Viajes`}
+                        rows={10}
+                        className="w-full text-sm border border-gray-200 rounded-xl p-3 outline-none focus:border-[#00AEEF] resize-none leading-relaxed"
+                      />
+                    </div>
+
+                    {/* Botones */}
+                    <div className="flex gap-2">
+                      <a href={`https://wa.me/54${pedidoSeleccionado.telefono?.replace(/\D/g,'')}?text=${encodeURIComponent(textoCotizacion || `Hola ${pedidoSeleccionado.nombre}! Te contactamos por tu consulta de ${pedidoSeleccionado.paqueteTitulo}.`)}`}
                         target="_blank" rel="noopener noreferrer"
-                        className="flex-1 bg-green-500 text-white text-xs font-bold py-2 rounded-xl text-center">
-                        💬 WhatsApp
+                        className="flex-1 bg-green-500 text-white text-xs font-bold py-2.5 rounded-xl text-center">
+                        💬 Enviar por WhatsApp
                       </a>
-                      <button onClick={() => { enviarCotizacion(pedidoSeleccionado); setPedidoSeleccionado(null) }}
-                        className="flex-1 bg-[#00AEEF] text-white text-xs font-bold py-2 rounded-xl">
-                        ✉️ Enviar cotización
+                      <button
+                        onClick={async () => {
+                          if (!textoCotizacion.trim()) { alert('Escribí la cotización antes de enviar'); return }
+                          setMensaje('Enviando cotización por email...')
+                          const res = await fetch('/api/admin/crm', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ pass, id: pedidoSeleccionado.id, textoCotizacion }),
+                          })
+                          const data = await res.json()
+                          if (res.ok) {
+                            setReservas(prev => prev.map((x: any) => x.id === pedidoSeleccionado.id ? { ...x, etapa: 2, cotizacionEnviada: new Date().toISOString() } : x))
+                            setMensaje('✅ Cotización enviada a ' + pedidoSeleccionado.email)
+                            setPedidoSeleccionado(null)
+                            setTextoCotizacion('')
+                          } else {
+                            setMensaje('❌ Error: ' + (data.error || 'no se pudo enviar'))
+                          }
+                          setTimeout(() => setMensaje(''), 6000)
+                        }}
+                        className="flex-1 bg-[#00AEEF] text-white text-xs font-bold py-2.5 rounded-xl">
+                        ✉️ Enviar por email
                       </button>
                     </div>
                   </div>

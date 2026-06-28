@@ -23,25 +23,49 @@ export async function PATCH(req: NextRequest) {
 
 // POST: enviar cotización manual a una prereserva
 export async function POST(req: NextRequest) {
-  const { pass, id } = await req.json()
+  const { pass, id, textoCotizacion } = await req.json()
   if (pass !== process.env.ADMIN_PASS) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const reservas = await getReservas()
   const reserva = reservas.find((r: any) => r.id === id)
   if (!reserva) return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
 
-  const paquetes = await redis.get<any[]>('paquetes_sync') || []
-  const paquete = paquetes.find((p: any) => p.id === reserva.paqueteId || p.titulo === reserva.paqueteTitulo)
-
   const { Resend } = await import('resend')
   const resend = new Resend(process.env.RESEND_API_KEY)
 
-  await resend.emails.send({
-    from: 'Euforia Viajes <noreply@viajaconeuforia.com>',
-    to: reserva.email,
-    subject: `✈️ Tu cotización: ${reserva.paqueteTitulo}`,
-    html: buildCotizacionHtml(reserva, paquete),
-  })
+  // Si viene texto manual, mandarlo como email simple
+  if (textoCotizacion) {
+    await resend.emails.send({
+      from: 'Euforia Viajes <noreply@viajaconeuforia.com>',
+      to: reserva.email,
+      subject: `✈️ Tu cotización: ${reserva.paqueteTitulo}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+          <div style="background:linear-gradient(135deg,#00AEEF,#0078B4);padding:24px;border-radius:12px 12px 0 0;text-align:center">
+            <h1 style="color:white;margin:0;font-size:22px">✈️ Euforia Viajes</h1>
+            <p style="color:rgba(255,255,255,0.85);margin:4px 0 0;font-size:13px">Tu cotización personalizada</p>
+          </div>
+          <div style="background:white;padding:28px 24px;border:1px solid #eee;border-radius:0 0 12px 12px">
+            <p style="font-size:15px;color:#333;white-space:pre-line;line-height:1.8">${textoCotizacion.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>
+            <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
+            <p style="color:#aaa;font-size:12px;text-align:center">
+              Euforia Viajes · Fontana 243, Trelew · Leg. LADEVI 16816<br/>
+              viajaconeuforia.com · +54 280 432-1400
+            </p>
+          </div>
+        </div>
+      `,
+    })
+  } else {
+    const paquetes = await redis.get<any[]>('paquetes_sync') || []
+    const paquete = paquetes.find((p: any) => p.id === reserva.paqueteId || p.titulo === reserva.paqueteTitulo)
+    await resend.emails.send({
+      from: 'Euforia Viajes <noreply@viajaconeuforia.com>',
+      to: reserva.email,
+      subject: `✈️ Tu cotización: ${reserva.paqueteTitulo}`,
+      html: buildCotizacionHtml(reserva, paquete),
+    })
+  }
 
   // Marcar como etapa 2
   const updated = reservas.map((r: any) => r.id === id ? { ...r, etapa: 2, cotizacionEnviada: new Date().toISOString() } : r)
