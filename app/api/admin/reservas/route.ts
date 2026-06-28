@@ -15,9 +15,13 @@ export async function DELETE(req: NextRequest) {
   if (pass !== process.env.ADMIN_PASS) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   try {
     if (id) {
-      // Borrar solo una reserva por ID
+      // Borrar solo la primera ocurrencia con ese ID
       const reservas = await redis.lrange<any>('reservas', 0, -1)
-      const filtradas = reservas.filter((r: any) => r.id !== id)
+      let borrado = false
+      const filtradas = reservas.filter((r: any) => {
+        if (!borrado && r.id === id) { borrado = true; return false }
+        return true
+      })
       await redis.del('reservas')
       for (const r of [...filtradas].reverse()) await redis.lpush('reservas', r)
     } else {
