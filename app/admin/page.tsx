@@ -1122,6 +1122,12 @@ export default function AdminPage() {
                                 {r.fechaDeseada && <span>📅 {r.fechaDeseada}</span>}
                               </div>
                               <div className="flex gap-1 flex-wrap">
+                                {r.mensaje && (
+                                  <button onClick={() => setPedidoSeleccionado(r)}
+                                    className="text-[10px] font-bold px-2 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition">
+                                    📋 Ver pedido
+                                  </button>
+                                )}
                                 {/* Botón cotizar (solo etapa 1) */}
                                 {etapa.id === 1 && (
                                   <button onClick={() => enviarCotizacion(r)}
@@ -1244,6 +1250,7 @@ export default function AdminPage() {
               </div>
             </div>
           )}
+          </div>
           )
         })()}
 
