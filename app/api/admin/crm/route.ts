@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { redis } from '@/lib/redis'
 
+async function getReservas() {
+  return await redis.lrange<any>('reservas', 0, -1) || []
+}
+
+async function saveReservas(reservas: any[]) {
+  await redis.del('reservas')
+  for (const r of [...reservas].reverse()) await redis.lpush('reservas', r)
+}
+
 // PATCH: cambiar etapa de una prereserva
 export async function PATCH(req: NextRequest) {
   const { pass, id, etapa } = await req.json()
   if (pass !== process.env.ADMIN_PASS) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const reservas = await redis.get<any[]>('reservas') || []
-  const updated = reservas.map(r => r.id === id ? { ...r, etapa } : r)
-  await redis.set('reservas', updated)
+  const reservas = await getReservas()
+  const updated = reservas.map((r: any) => r.id === id ? { ...r, etapa } : r)
+  await saveReservas(updated)
   return NextResponse.json({ ok: true })
 }
 
@@ -17,12 +26,12 @@ export async function POST(req: NextRequest) {
   const { pass, id } = await req.json()
   if (pass !== process.env.ADMIN_PASS) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const reservas = await redis.get<any[]>('reservas') || []
-  const reserva = reservas.find(r => r.id === id)
+  const reservas = await getReservas()
+  const reserva = reservas.find((r: any) => r.id === id)
   if (!reserva) return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
 
   const paquetes = await redis.get<any[]>('paquetes_sync') || []
-  const paquete = paquetes.find(p => p.id === reserva.paqueteId || p.titulo === reserva.paqueteTitulo)
+  const paquete = paquetes.find((p: any) => p.id === reserva.paqueteId || p.titulo === reserva.paqueteTitulo)
 
   const { Resend } = await import('resend')
   const resend = new Resend(process.env.RESEND_API_KEY)
@@ -35,8 +44,8 @@ export async function POST(req: NextRequest) {
   })
 
   // Marcar como etapa 2
-  const updated = reservas.map(r => r.id === id ? { ...r, etapa: 2, cotizacionEnviada: new Date().toISOString() } : r)
-  await redis.set('reservas', updated)
+  const updated = reservas.map((r: any) => r.id === id ? { ...r, etapa: 2, cotizacionEnviada: new Date().toISOString() } : r)
+  await saveReservas(updated)
 
   return NextResponse.json({ ok: true })
 }

@@ -89,9 +89,10 @@ export async function POST(req: NextRequest) {
       if (id) {
         try {
           const { redis } = await import('@/lib/redis')
-          const reservas = await redis.get<any[]>('reservas') || []
-          const updated = reservas.map(r => r.id === id ? { ...r, etapa: 2, cotizacionEnviada: new Date().toISOString() } : r)
-          await redis.set('reservas', updated)
+          const reservas = await redis.lrange<any>('reservas', 0, -1) || []
+          const updated = reservas.map((r: any) => r.id === id ? { ...r, etapa: 2, cotizacionEnviada: new Date().toISOString() } : r)
+          await redis.del('reservas')
+          for (const r of [...updated].reverse()) await redis.lpush('reservas', r)
         } catch {}
       }
     } catch {}
