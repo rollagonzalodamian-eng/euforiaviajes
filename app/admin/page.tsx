@@ -998,19 +998,25 @@ export default function AdminPage() {
           }
 
           async function enviarCotizacion(r: any) {
-            setMensaje('Enviando cotización...')
-            const res = await fetch('/api/admin/crm', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ pass, id: r.id }),
-            })
-            if (res.ok) {
-              setReservas(prev => prev.map((x: any) => x.id === r.id ? { ...x, etapa: 2, cotizacionEnviada: new Date().toISOString() } : x))
-              setMensaje('✅ Cotización enviada a ' + r.email)
-            } else {
-              setMensaje('❌ Error al enviar cotización')
+            if (!r.id) { setMensaje('❌ Esta consulta no tiene ID. Usá "Migrar IDs" primero.'); setTimeout(() => setMensaje(''), 5000); return }
+            setMensaje('Enviando cotización a ' + r.email + '...')
+            try {
+              const res = await fetch('/api/admin/crm', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pass, id: r.id }),
+              })
+              const data = await res.json()
+              if (res.ok) {
+                setReservas(prev => prev.map((x: any) => x.id === r.id ? { ...x, etapa: 2, cotizacionEnviada: new Date().toISOString() } : x))
+                setMensaje('✅ Cotización enviada a ' + r.email)
+              } else {
+                setMensaje('❌ Error: ' + (data.error || 'no se pudo enviar'))
+              }
+            } catch (e: any) {
+              setMensaje('❌ Error de conexión: ' + e.message)
             }
-            setTimeout(() => setMensaje(''), 4000)
+            setTimeout(() => setMensaje(''), 6000)
           }
 
           return (
@@ -1158,20 +1164,25 @@ export default function AdminPage() {
                           target="_blank" rel="noopener noreferrer"
                           className="bg-green-500 text-white text-xs px-3 py-1 rounded-full font-medium">WhatsApp</a>
                       </div>
-                      <p className="text-sm text-[#00AEEF] font-medium mb-2">{r.paqueteTitulo}</p>
-                      <div className="grid grid-cols-2 gap-1 text-xs text-gray-600 mb-3">
+                      <p className="text-sm text-[#00AEEF] font-medium mb-2">✈️ {r.paqueteTitulo}</p>
+                      <div className="grid grid-cols-2 gap-1 text-xs text-gray-600 mb-2">
                         <span>📧 {r.email}</span>
                         <span>📱 {r.telefono}</span>
-                        <span>👥 {r.cantPasajeros} pasajeros</span>
+                        <span>👥 {r.cantPasajeros} pasajero{r.cantPasajeros > 1 ? 's' : ''}</span>
                         {r.fechaDeseada && <span>📅 {r.fechaDeseada}</span>}
-                        {r.cotizacionEnviada && <span className="text-green-600">✉️ Cotización enviada</span>}
+                        {r.cotizacionEnviada && <span className="text-green-600 col-span-2">✉️ Cotización enviada {new Date(r.cotizacionEnviada).toLocaleDateString('es-AR')}</span>}
                       </div>
+                      {r.mensaje && (
+                        <div className="bg-gray-50 rounded-lg px-3 py-2 text-xs text-gray-600 mb-2 border border-gray-100">
+                          💬 <span className="italic">{r.mensaje}</span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className={`text-xs font-bold px-2 py-1 rounded-full ${etapa.badge}`}>{etapa.label}</span>
-                        {r.etapa === 1 && (
+                        {(r.etapa === 1 || r.etapa === 2) && (
                           <button onClick={() => enviarCotizacion(r)}
                             className="text-xs font-bold px-3 py-1 rounded-lg bg-[#00AEEF] text-white">
-                            ✉️ Enviar cotización
+                            ✉️ {r.etapa === 2 ? 'Reenviar cotización' : 'Enviar cotización'}
                           </button>
                         )}
                         <select defaultValue={r.etapa || 1}
