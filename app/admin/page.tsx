@@ -1145,6 +1145,13 @@ export default function AdminPage() {
                                     <option key={e.id} value={e.id}>{e.label}</option>
                                   ))}
                                 </select>
+                                <button onClick={async () => {
+                                  if (!confirm(`¿Borrar la consulta de ${r.nombre}?`)) return
+                                  await fetch('/api/admin/reservas', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pass, id: r.id }) })
+                                  setReservas(prev => prev.filter((x: any) => x.id !== r.id))
+                                }} className="text-[10px] px-1.5 py-1 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 transition">
+                                  🗑️
+                                </button>
                               </div>
                             </div>
                           ))}
@@ -1204,6 +1211,13 @@ export default function AdminPage() {
                           className="text-xs border border-gray-200 rounded-lg px-2 py-1 outline-none focus:border-[#00AEEF]">
                           {ETAPAS.map(e => <option key={e.id} value={e.id}>{e.label}</option>)}
                         </select>
+                        <button onClick={async () => {
+                          if (!confirm(`¿Borrar la consulta de ${r.nombre}?`)) return
+                          await fetch('/api/admin/reservas', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pass, id: r.id }) })
+                          setReservas(prev => prev.filter((x: any) => x.id !== r.id))
+                        }} className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 transition">
+                          🗑️
+                        </button>
                       </div>
                     </div>
                   )

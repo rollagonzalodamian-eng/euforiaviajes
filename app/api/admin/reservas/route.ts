@@ -11,10 +11,18 @@ export async function GET() {
 }
 
 export async function DELETE(req: NextRequest) {
-  const { pass } = await req.json()
+  const { pass, id } = await req.json()
   if (pass !== process.env.ADMIN_PASS) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   try {
-    await redis.del('reservas')
+    if (id) {
+      // Borrar solo una reserva por ID
+      const reservas = await redis.lrange<any>('reservas', 0, -1)
+      const filtradas = reservas.filter((r: any) => r.id !== id)
+      await redis.del('reservas')
+      for (const r of [...filtradas].reverse()) await redis.lpush('reservas', r)
+    } else {
+      await redis.del('reservas')
+    }
     return NextResponse.json({ ok: true })
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 500 })
