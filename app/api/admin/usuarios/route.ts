@@ -17,11 +17,17 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { pass, email, rol, viajes } = await req.json()
+  const { pass, email, rol, viajes, viajeAsignado, puntos } = await req.json()
   if (pass !== process.env.ADMIN_PASS) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const existing = await redis.get<PerfilUsuario>(`perfil:${email}`)
   if (!existing) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
-  const updated = { ...existing, ...(rol && { rol }), ...(viajes && { viajes }) }
+  const updated = {
+    ...existing,
+    ...(rol && { rol }),
+    ...(viajes && { viajes }),
+    ...(viajeAsignado !== undefined && { viajeAsignado }),
+    ...(puntos !== undefined && { puntos }),
+  }
   await redis.set(`perfil:${email}`, updated)
   return NextResponse.json({ ok: true })
 }

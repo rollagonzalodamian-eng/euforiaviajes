@@ -1438,63 +1438,166 @@ export default function AdminPage() {
         })()}
 
         {/* USUARIOS */}
-        {tab === 'usuarios' && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-800">Usuarios registrados</h2>
-              <button
-                onClick={async () => {
-                  setCargandoUsuarios(true)
-                  const r = await fetch(`/api/admin/usuarios?pass=${encodeURIComponent(pass)}`)
-                  const data = await r.json()
-                  setUsuarios(Array.isArray(data) ? data : [])
-                  setCargandoUsuarios(false)
-                }}
-                className="text-[#00AEEF] text-sm font-medium"
-              >
-                {cargandoUsuarios ? 'Cargando...' : 'Cargar usuarios'}
-              </button>
-            </div>
-            {usuarios.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
-                <p className="text-4xl mb-3">👥</p>
-                <p>Apretá "Cargar usuarios" para ver la lista</p>
+        {tab === 'usuarios' && (() => {
+          return (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-gray-800">Usuarios registrados</h2>
+                <button
+                  onClick={async () => {
+                    setCargandoUsuarios(true)
+                    const r = await fetch(`/api/admin/usuarios?pass=${encodeURIComponent(pass)}`)
+                    const data = await r.json()
+                    setUsuarios(Array.isArray(data) ? data : [])
+                    setCargandoUsuarios(false)
+                  }}
+                  className="bg-[#00AEEF] text-white text-sm font-semibold px-4 py-2 rounded-lg"
+                >
+                  {cargandoUsuarios ? 'Cargando...' : '🔄 Cargar usuarios'}
+                </button>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {usuarios.map((u, i) => (
-                  <div key={i} className="bg-white rounded-xl shadow-sm border p-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-semibold text-gray-800">{u.nombre || '(sin nombre)'}</p>
-                        <p className="text-xs text-gray-500">{u.email}</p>
-                        {u.telefono && <p className="text-xs text-gray-400">📱 {u.telefono}</p>}
+              {usuarios.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <p className="text-4xl mb-3">👥</p>
+                  <p>Apretá "Cargar usuarios" para ver la lista</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {usuarios.map((u, i) => {
+                    const viaje = u.viajeAsignado || {}
+                    const [editandoViaje, setEditandoViaje] = [false, () => {}]
+                    return (
+                      <div key={i} className="bg-white rounded-xl shadow-sm border p-4">
+                        {/* Cabecera usuario */}
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <p className="font-bold text-gray-800">{u.nombre || '(sin nombre)'}</p>
+                            <p className="text-xs text-gray-500">{u.email}</p>
+                            {u.telefono && <p className="text-xs text-gray-400">📱 {u.telefono}</p>}
+                          </div>
+                          <span className={`text-xs font-bold px-3 py-1 rounded-full ${u.rol === 'pasajero' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                            {u.rol === 'pasajero' ? '✈️ Pasajero' : '👤 Visitante'}
+                          </span>
+                        </div>
+
+                        {/* Viaje asignado actual */}
+                        {viaje.paqueteTitulo && (
+                          <div className="bg-blue-50 rounded-lg p-3 mb-3 text-sm">
+                            <p className="font-semibold text-[#00AEEF]">✈️ {viaje.paqueteTitulo}</p>
+                            <p className="text-gray-600 text-xs mt-1">
+                              {viaje.fechaSalida && `📅 ${viaje.fechaSalida} · `}
+                              {viaje.cantPasajeros && `👥 ${viaje.cantPasajeros} pas. · `}
+                              {viaje.nroVoucher && `🎫 ${viaje.nroVoucher}`}
+                            </p>
+                            <span className={`inline-block mt-1 text-xs font-bold px-2 py-0.5 rounded-full ${
+                              viaje.estado === 'confirmado' ? 'bg-green-100 text-green-700' :
+                              viaje.estado === 'pagado' ? 'bg-blue-100 text-blue-700' :
+                              'bg-yellow-100 text-yellow-700'
+                            }`}>{viaje.estado || 'pendiente'}</span>
+                          </div>
+                        )}
+
+                        {/* Formulario asignar viaje */}
+                        <details className="mt-2">
+                          <summary className="cursor-pointer text-sm font-semibold text-[#00AEEF] select-none">
+                            {viaje.paqueteTitulo ? '✏️ Editar viaje asignado' : '➕ Asignar viaje'}
+                          </summary>
+                          <div className="mt-3 space-y-2 border-t pt-3">
+                            <div>
+                              <label className="text-xs text-gray-500 block mb-1">Paquete</label>
+                              <select
+                                defaultValue={viaje.paqueteId || ''}
+                                id={`paquete-${u.email}`}
+                                className="w-full border rounded-lg px-3 py-2 text-sm"
+                              >
+                                <option value="">— Seleccionar paquete —</option>
+                                {paquetes.map(p => (
+                                  <option key={p.id} value={p.id}>{p.titulo}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-xs text-gray-500 block mb-1">Fecha de salida</label>
+                                <input id={`fecha-${u.email}`} type="text" defaultValue={viaje.fechaSalida || ''} placeholder="ej: 15/01/2026"
+                                  className="w-full border rounded-lg px-3 py-2 text-sm" />
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-500 block mb-1">Cant. pasajeros</label>
+                                <input id={`cant-${u.email}`} type="number" defaultValue={viaje.cantPasajeros || 1} min={1}
+                                  className="w-full border rounded-lg px-3 py-2 text-sm" />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-xs text-gray-500 block mb-1">Nro. voucher</label>
+                                <input id={`voucher-${u.email}`} type="text"
+                                  defaultValue={viaje.nroVoucher || `EUF-${new Date().getFullYear()}-${Math.floor(Math.random()*9000)+1000}`}
+                                  className="w-full border rounded-lg px-3 py-2 text-sm" />
+                              </div>
+                              <div>
+                                <label className="text-xs text-gray-500 block mb-1">Estado</label>
+                                <select id={`estado-${u.email}`} defaultValue={viaje.estado || 'pendiente'}
+                                  className="w-full border rounded-lg px-3 py-2 text-sm">
+                                  <option value="pendiente">Pendiente</option>
+                                  <option value="confirmado">Confirmado</option>
+                                  <option value="pagado">Pagado</option>
+                                </select>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-xs text-gray-500 block mb-1">Itinerario (texto o URL)</label>
+                              <textarea id={`itinerario-${u.email}`} defaultValue={viaje.itinerario || ''} rows={3}
+                                placeholder="Escribí el itinerario o pegá una URL al PDF..."
+                                className="w-full border rounded-lg px-3 py-2 text-sm resize-none" />
+                            </div>
+                            <div>
+                              <label className="text-xs text-gray-500 block mb-1">Puntos de fidelidad</label>
+                              <input id={`puntos-${u.email}`} type="number" defaultValue={u.puntos || 0} min={0}
+                                className="w-full border rounded-lg px-3 py-2 text-sm" />
+                            </div>
+                            <button
+                              onClick={async () => {
+                                const paqueteId = (document.getElementById(`paquete-${u.email}`) as HTMLSelectElement)?.value
+                                const paqueteSel = paquetes.find(p => p.id === paqueteId)
+                                const payload = {
+                                  pass,
+                                  email: u.email,
+                                  rol: 'pasajero',
+                                  puntos: parseInt((document.getElementById(`puntos-${u.email}`) as HTMLInputElement)?.value || '0'),
+                                  viajeAsignado: {
+                                    paqueteId,
+                                    paqueteTitulo: paqueteSel?.titulo || viaje.paqueteTitulo || '',
+                                    fechaSalida: (document.getElementById(`fecha-${u.email}`) as HTMLInputElement)?.value,
+                                    cantPasajeros: parseInt((document.getElementById(`cant-${u.email}`) as HTMLInputElement)?.value || '1'),
+                                    nroVoucher: (document.getElementById(`voucher-${u.email}`) as HTMLInputElement)?.value,
+                                    estado: (document.getElementById(`estado-${u.email}`) as HTMLSelectElement)?.value,
+                                    itinerario: (document.getElementById(`itinerario-${u.email}`) as HTMLTextAreaElement)?.value,
+                                  }
+                                }
+                                await fetch('/api/admin/usuarios', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify(payload),
+                                })
+                                setUsuarios(prev => prev.map(x => x.email === u.email ? { ...x, ...payload, rol: 'pasajero' } : x))
+                                setMensaje(`✅ Viaje asignado a ${u.nombre || u.email}`)
+                                setTimeout(() => setMensaje(''), 3000)
+                              }}
+                              className="w-full bg-[#00AEEF] text-white font-bold py-2 rounded-lg text-sm hover:bg-[#0090C5] transition"
+                            >
+                              💾 Guardar viaje
+                            </button>
+                          </div>
+                        </details>
                       </div>
-                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${u.rol === 'pasajero' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                        {u.rol === 'pasajero' ? '✈️ Pasajero' : '👤 Visitante'}
-                      </span>
-                    </div>
-                    {u.rol !== 'pasajero' && (
-                      <button
-                        onClick={async () => {
-                          await fetch('/api/admin/usuarios', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ pass, email: u.email, rol: 'pasajero' }),
-                          })
-                          setUsuarios(prev => prev.map(x => x.email === u.email ? { ...x, rol: 'pasajero' } : x))
-                        }}
-                        className="mt-3 text-xs text-[#00AEEF] font-semibold border border-[#00AEEF] rounded-lg px-3 py-1 hover:bg-[#E0F6FF] transition"
-                      >
-                        Marcar como pasajero ✈️
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })()}
       </div>
     </div>
   )
