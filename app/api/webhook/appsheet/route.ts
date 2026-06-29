@@ -5,6 +5,13 @@ import { Resend } from 'resend'
 const APP_ID = 'd3b75a41-2f08-45be-9325-27af6a1c023e'
 const API_URL = `https://api.appsheet.com/api/v2/apps/${APP_ID}/tables/Salidas/Action`
 
+export async function GET(req: NextRequest) {
+  const secret = req.nextUrl.searchParams.get('secret')
+  if (secret !== process.env.WEBHOOK_SECRET) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const debug = await redis.get('webhook_debug_last')
+  return NextResponse.json(debug || { mensaje: 'Ningún webhook recibido aún' })
+}
+
 export async function POST(req: NextRequest) {
   // Verificar secret para que solo AppSheet pueda llamar este endpoint
   const secret = req.nextUrl.searchParams.get('secret') || req.headers.get('x-webhook-secret')
@@ -14,6 +21,9 @@ export async function POST(req: NextRequest) {
 
   let body: any = {}
   try { body = await req.json() } catch {}
+
+  // Guardar último body recibido para debugging
+  await redis.set('webhook_debug_last', body)
 
   const evento = body.eventType || body.event || 'UPDATE'
   const fila = body.data || body.row || {}
@@ -34,7 +44,7 @@ export async function POST(req: NextRequest) {
 
   // 2. Nueva salida — email a todos los usuarios registrados
   const esNuevo = evento === 'ADD'
-  if (esNuevo && titulo) {
+  if (esNuevo) {
     promesas.push(emailNuevaSalida(fila, syncResult.paquetes))
   }
 
@@ -79,8 +89,13 @@ async function alertaCuposBajos(titulo: string, fecha: string, cupos: number) {
 }
 
 async function emailNuevaSalida(fila: any, paquetes: any[]) {
-  const titulo = fila['Título'] || fila['TÃ­tulo'] || fila['Titulo'] || ''
-  const paquete = paquetes.find((p: any) => p.titulo === titulo) || mapearSalida(fila, 0)
+  const rowId = fila['Row ID'] || fila['_RowNumber'] || fila['RowId'] || ''
+  const titulo = fila['Título'] || fila['TÃ­tulo'] || fila['Titulo'] || fila['titulo'] || ''
+  // Buscar por Row ID primero, luego por título, luego construir desde fila
+  const paquete = (rowId ? paquetes.find((p: any) => p.id === rowId) : null)
+    || (titulo ? paquetes.find((p: any) => p.titulo === titulo) : null)
+    || mapearSalida(fila, 0)
+  if (!paquete?.titulo) return
 
   // Obtener todos los usuarios registrados
   const keys = await redis.keys('perfil:*')
@@ -103,7 +118,7 @@ async function emailNuevaSalida(fila: any, paquetes: any[]) {
       await resend.emails.send({
         from: 'Euforia Viajes <noreply@viajaconeuforia.com>',
         to: r.email,
-        subject: `✈️ Nueva salida disponible: ${titulo}`,
+        subject: `✈️ Nueva salida disponible: ${paquete.titulo}`,
         html: `
           <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;background:#f5f9fd">
             <div style="background:linear-gradient(135deg,#00AEEF,#0078B4);padding:28px 24px;border-radius:16px 16px 0 0;text-align:center">
