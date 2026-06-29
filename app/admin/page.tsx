@@ -1180,7 +1180,18 @@ export default function AdminPage() {
                           target="_blank" rel="noopener noreferrer"
                           className="bg-green-500 text-white text-xs px-3 py-1 rounded-full font-medium">WhatsApp</a>
                       </div>
-                      <p className="text-sm text-[#00AEEF] font-medium mb-2">✈️ {r.paqueteTitulo}</p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <p className="text-sm text-[#00AEEF] font-medium">✈️ {r.paqueteTitulo}</p>
+                        {r.paqueteId && r.paqueteId !== 'arma-tu-viaje' && (
+                          <a href={`/paquete/${r.paqueteId}`} target="_blank" rel="noopener noreferrer"
+                            className="text-[10px] bg-[#00AEEF]/10 text-[#00AEEF] px-2 py-0.5 rounded-full font-medium hover:bg-[#00AEEF]/20">
+                            Ver paquete ↗
+                          </a>
+                        )}
+                        {r.paqueteId === 'arma-tu-viaje' && (
+                          <span className="text-[10px] bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full font-medium">Viaje a medida</span>
+                        )}
+                      </div>
                       <div className="grid grid-cols-2 gap-1 text-xs text-gray-600 mb-2">
                         <span>📧 {r.email}</span>
                         <span>📱 {r.telefono}</span>
