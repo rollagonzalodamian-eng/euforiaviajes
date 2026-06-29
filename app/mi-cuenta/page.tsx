@@ -1,68 +1,27 @@
 'use client'
+
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { useEffect, useState } from 'react'
 
-type Reserva = {
-  nombre: string
-  email: string
-  telefono: string
-  cantPasajeros: number
-  fechaDeseada?: string
-  paqueteTitulo: string
-  fecha: string
-  estado?: string
-}
-
-type Perfil = {
-  nombre: string
-  telefono: string
-  rol: 'visitante' | 'pasajero'
-  viajes: string[]
-}
-
-export default function MiCuentaPage() {
+export default function CuentaPage() {
   const { data: session, status } = useSession()
-  const [reservas, setReservas] = useState<Reserva[]>([])
-  const [perfil, setPerfil] = useState<Perfil | null>(null)
-  const [cargando, setCargando] = useState(false)
-  const [onboarding, setOnboarding] = useState(false)
-  const [form, setForm] = useState({ nombre: '', telefono: '' })
-  const [guardando, setGuardando] = useState(false)
+  const [perfil, setPerfil] = useState<any>(null)
+  const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
-    if (!session?.user?.email) return
-    setCargando(true)
-    Promise.all([
-      fetch(`/api/mis-reservas?email=${encodeURIComponent(session.user.email)}`).then(r => r.json()),
-      fetch('/api/auth/perfil').then(r => r.json()),
-    ]).then(([res, perf]) => {
-      setReservas(res)
-      if (!perf || !perf.nombre) {
-        setOnboarding(true)
-        setForm({ nombre: perf?.nombre || '', telefono: perf?.telefono || '' })
-      } else {
-        setPerfil(perf)
-      }
+    if (status === 'authenticated') {
+      fetch('/api/auth/perfil')
+        .then(r => r.json())
+        .then(data => { setPerfil(data); setCargando(false) })
+        .catch(() => setCargando(false))
+    } else if (status === 'unauthenticated') {
       setCargando(false)
-    }).catch(() => setCargando(false))
-  }, [session])
+    }
+  }, [status])
 
-  const guardarPerfil = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setGuardando(true)
-    await fetch('/api/auth/perfil', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    })
-    setPerfil({ nombre: form.nombre, telefono: form.telefono, rol: 'visitante', viajes: [] })
-    setOnboarding(false)
-    setGuardando(false)
-  }
-
-  if (status === 'loading') {
+  if (status === 'loading' || cargando) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="w-8 h-8 border-4 border-[#00AEEF] border-t-transparent rounded-full animate-spin" />
       </div>
     )
@@ -70,183 +29,216 @@ export default function MiCuentaPage() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-[#f5f9fd] flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-sm w-full text-center">
-          <div className="w-16 h-16 bg-[#E0F6FF] rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-3xl">✈️</span>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
+          <div className="w-16 h-16 bg-[#00AEEF] rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
           </div>
-          <h1 className="text-xl font-black text-gray-800 mb-2">Mi cuenta</h1>
-          <p className="text-gray-400 text-sm mb-6">Ingresá para ver tus reservas y viajes.</p>
-          <a href="/login" className="block w-full text-white font-bold py-3 rounded-xl text-center transition" style={{ backgroundColor: '#00AEEF' }}>
-            Ingresar / Registrarse
-          </a>
+          <h1 className="text-xl font-bold text-gray-800 mb-2">Mi cuenta</h1>
+          <p className="text-gray-500 text-sm mb-6">Iniciá sesión para ver tu viaje, voucher e itinerario</p>
+          <button
+            onClick={() => signIn()}
+            className="w-full bg-[#00AEEF] text-white py-3 rounded-xl font-bold hover:bg-[#0090C5] transition"
+          >
+            Iniciar sesión
+          </button>
         </div>
       </div>
     )
   }
 
-  if (onboarding) {
-    return (
-      <div className="min-h-screen bg-[#f5f9fd] flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-sm w-full">
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-[#E0F6FF] rounded-full flex items-center justify-center mx-auto mb-3">
-              <span className="text-3xl">👋</span>
-            </div>
-            <h1 className="text-xl font-black text-gray-800">¡Bienvenido!</h1>
-            <p className="text-gray-400 text-sm mt-1">Completá tu perfil para continuar</p>
-          </div>
-          <form onSubmit={guardarPerfil} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Nombre completo</label>
-              <input type="text" required value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#00AEEF]"
-                placeholder="Tu nombre" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Teléfono / WhatsApp</label>
-              <input type="tel" required value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))}
-                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#00AEEF]"
-                placeholder="+54 280 432 1400" />
-            </div>
-            <button type="submit" disabled={guardando}
-              className="w-full text-white font-bold py-3 rounded-xl transition disabled:opacity-60"
-              style={{ backgroundColor: '#00AEEF' }}>
-              {guardando ? 'Guardando...' : 'Guardar y continuar →'}
-            </button>
-          </form>
+  const viaje = perfil?.viajeAsignado
+  const puntos = perfil?.puntos || 0
+
+  function imprimirVoucher() {
+    const w = window.open('', '_blank')
+    if (!w) return
+    w.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Voucher ${viaje?.nroVoucher || ''} - Euforia Viajes</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 40px; color: #333; max-width: 600px; margin: 0 auto; }
+          .header { background: linear-gradient(135deg, #00AEEF, #0078B4); color: white; padding: 24px; border-radius: 12px; text-align: center; margin-bottom: 24px; }
+          .voucher-num { font-size: 28px; font-weight: 900; letter-spacing: 2px; margin: 8px 0; }
+          .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 14px; }
+          .label { color: #777; }
+          .val { font-weight: bold; }
+          .estado { display: inline-block; background: #d1fae5; color: #065f46; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; margin-top: 16px; }
+          .footer { margin-top: 32px; text-align: center; color: #999; font-size: 12px; border-top: 1px solid #eee; padding-top: 16px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <p style="margin:0;opacity:.8;font-size:12px">VOUCHER DE VIAJE</p>
+          <div class="voucher-num">${viaje?.nroVoucher || 'EUF-0000'}</div>
+          <p style="margin:0;font-size:13px">Euforia Viajes</p>
         </div>
-      </div>
-    )
+        <div class="row"><span class="label">Pasajero</span><span class="val">${perfil?.nombre || session?.user?.name || ''}</span></div>
+        <div class="row"><span class="label">Email</span><span class="val">${session?.user?.email || ''}</span></div>
+        <div class="row"><span class="label">Destino</span><span class="val">${viaje?.paqueteTitulo || ''}</span></div>
+        <div class="row"><span class="label">Fecha de salida</span><span class="val">${viaje?.fechaSalida || ''}</span></div>
+        <div class="row"><span class="label">Pasajeros</span><span class="val">${viaje?.cantPasajeros || 1}</span></div>
+        <div class="row"><span class="label">Estado</span><span class="val">${viaje?.estado || 'pendiente'}</span></div>
+        <div style="text-align:center"><span class="estado">✓ ${viaje?.estado === 'confirmado' ? 'Reserva Confirmada' : viaje?.estado === 'pagado' ? 'Pagado' : 'Pendiente de confirmación'}</span></div>
+        <div class="footer">
+          Euforia Viajes · Fontana 243, Trelew · Leg. LADEVI 16816<br/>
+          viajaconeuforia.com · +54 280 432-1400
+        </div>
+      </body>
+      </html>
+    `)
+    w.document.close()
+    w.print()
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f9fd]">
-      <div className="max-w-2xl mx-auto px-4 py-10">
-        {/* Perfil */}
-        <div className="bg-white rounded-2xl shadow p-5 mb-6 flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-[#E0F6FF] flex items-center justify-center text-2xl font-black text-[#00AEEF]">
-            {perfil?.nombre?.[0]?.toUpperCase() || '?'}
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-[#00AEEF] text-white px-4 py-6">
+        <div className="max-w-lg mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold">Mi cuenta</h1>
+            <p className="text-white/80 text-sm">{perfil?.nombre || session.user?.name}</p>
           </div>
-          <div className="flex-1">
-            <p className="font-bold text-gray-800">{perfil?.nombre || session.user?.name}</p>
-            <p className="text-sm text-gray-400">{session.user?.email}</p>
-            {perfil?.telefono && <p className="text-xs text-gray-400">📱 {perfil.telefono}</p>}
-          </div>
-          <div className="flex flex-col items-end gap-2">
-            <span className={`text-xs font-bold px-3 py-1 rounded-full ${perfil?.rol === 'pasajero' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-              {perfil?.rol === 'pasajero' ? '✈️ Pasajero' : '👤 Visitante'}
-            </span>
-            <button onClick={() => signOut()} className="text-xs text-gray-400 hover:text-red-500 transition">
-              Salir
-            </button>
+          <button onClick={() => signOut()} className="text-white/80 text-sm border border-white/30 rounded-lg px-3 py-1">
+            Salir
+          </button>
+        </div>
+      </div>
+
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
+
+        {/* Sección 1 — Mi información */}
+        <div className="bg-white rounded-2xl shadow-sm border p-5">
+          <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <span className="text-xl">👤</span> Mi información
+          </h2>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-500">Nombre</span>
+              <span className="font-semibold">{perfil?.nombre || session.user?.name || '—'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Email</span>
+              <span className="font-semibold text-right">{session.user?.email}</span>
+            </div>
+            {perfil?.telefono && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">Teléfono</span>
+                <span className="font-semibold">{perfil.telefono}</span>
+              </div>
+            )}
+            {perfil?.ciudad && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">Ciudad</span>
+                <span className="font-semibold">{perfil.ciudad}</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Viajes confirmados */}
-        {perfil?.rol === 'pasajero' && perfil.viajes?.length > 0 && (
-          <div className="mb-6">
-            <h2 className="text-lg font-bold text-gray-800 mb-3">✈️ Mis viajes confirmados</h2>
-            <div className="space-y-3">
-              {perfil.viajes.map((v, i) => (
-                <a key={i} href={`/paquete/${v}`} className="block bg-white rounded-xl shadow p-4 hover:shadow-md transition">
-                  <p className="text-sm font-semibold text-[#00AEEF]">Ver paquete →</p>
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <h2 className="text-lg font-bold text-gray-800 mb-4">Mis pre-reservas</h2>
-
-        {cargando ? (
-          <div className="text-center py-10">
-            <div className="w-8 h-8 border-4 border-[#00AEEF] border-t-transparent rounded-full animate-spin mx-auto" />
-          </div>
-        ) : reservas.length === 0 ? (
-          <div className="text-center py-10 text-gray-400">
-            <p className="text-4xl mb-3">📭</p>
-            <p className="font-semibold">Todavía no tenés reservas.</p>
-            <a href="/" className="mt-4 inline-block text-sm font-semibold underline" style={{ color: '#00AEEF' }}>
-              Ver paquetes disponibles →
-            </a>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {[...reservas].reverse().map((r, i) => {
-              const estado = r.estado || 'en_gestion'
-              const pasos = [
-                { key: 'recibida', label: 'Recibida', icon: '📋' },
-                { key: 'en_gestion', label: 'En revisión', icon: '🔍' },
-                { key: 'confirmada', label: 'Confirmada', icon: '✅' },
-              ]
-              const cancelada = estado === 'cancelada'
-              const pasoActual = cancelada ? -1 : pasos.findIndex(p => p.key === estado)
-              const idx = pasoActual === -1 ? 0 : pasoActual
-
-              return (
-                <div key={i} className="bg-white rounded-2xl shadow p-5">
-                  <div className="flex items-start justify-between mb-1">
-                    <p className="font-bold text-gray-800 text-sm leading-snug">{r.paqueteTitulo}</p>
-                    {cancelada && (
-                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-red-100 text-red-600 ml-2 shrink-0">❌ Cancelada</span>
-                    )}
+        {/* Sección 2 — Mi viaje */}
+        <div className="bg-white rounded-2xl shadow-sm border p-5">
+          <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <span className="text-xl">✈️</span> Mi viaje
+          </h2>
+          {viaje?.paqueteTitulo ? (
+            <div>
+              <div className="bg-blue-50 rounded-xl p-4 mb-4">
+                <h3 className="font-bold text-[#00AEEF] text-lg leading-tight">{viaje.paqueteTitulo}</h3>
+                <span className={`inline-block mt-2 text-xs font-bold px-3 py-1 rounded-full ${
+                  viaje.estado === 'confirmado' ? 'bg-green-100 text-green-700' :
+                  viaje.estado === 'pagado' ? 'bg-blue-100 text-blue-700' :
+                  'bg-yellow-100 text-yellow-700'
+                }`}>
+                  {viaje.estado === 'confirmado' ? '✓ Confirmado' : viaje.estado === 'pagado' ? '💳 Pagado' : '⏳ Pendiente'}
+                </span>
+              </div>
+              <div className="space-y-2 text-sm mb-4">
+                {viaje.fechaSalida && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">📅 Fecha de salida</span>
+                    <span className="font-semibold">{viaje.fechaSalida}</span>
                   </div>
-                  <p className="text-xs text-gray-400 mb-4">
-                    Solicitada el {r.fecha ? new Date(r.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}
-                    {r.cantPasajeros && ` · ${r.cantPasajeros} pasajero${r.cantPasajeros > 1 ? 's' : ''}`}
-                    {r.fechaDeseada && ` · Fecha deseada: ${r.fechaDeseada}`}
-                  </p>
-
-                  {/* Timeline de progreso */}
-                  {!cancelada && (
-                    <div className="flex items-center mb-5">
-                      {pasos.map((paso, pi) => {
-                        const activo = pi <= idx
-                        const esActual = pi === idx
-                        return (
-                          <div key={paso.key} className="flex items-center flex-1 last:flex-none">
-                            <div className="flex flex-col items-center">
-                              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-base font-bold transition-all
-                                ${esActual ? 'ring-4 ring-[#00AEEF]/30' : ''}
-                                ${activo ? 'bg-[#00AEEF] text-white' : 'bg-gray-100 text-gray-400'}`}>
-                                {paso.icon}
-                              </div>
-                              <p className={`text-[10px] font-semibold mt-1 text-center leading-tight
-                                ${activo ? 'text-[#00AEEF]' : 'text-gray-400'}`}>
-                                {paso.label}
-                              </p>
-                            </div>
-                            {pi < pasos.length - 1 && (
-                              <div className={`flex-1 h-0.5 mx-1 mb-4 rounded ${pi < idx ? 'bg-[#00AEEF]' : 'bg-gray-200'}`} />
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-
-                  {estado === 'confirmada' && (
-                    <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 text-xs text-green-700 font-semibold">
-                      🎉 ¡Tu reserva está confirmada! Pronto vas a recibir más detalles por email.
-                    </div>
-                  )}
-                  {estado === 'en_gestion' && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 text-xs text-yellow-700">
-                      ⏳ Estamos revisando tu solicitud. Un asesor te va a contactar en menos de 24 hs.
-                    </div>
-                  )}
-
-                  <a href={`https://wa.me/542804321400?text=${encodeURIComponent(`Hola! Consulto por mi pre-reserva de ${r.paqueteTitulo}`)}`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="block w-full text-center bg-[#25D366] text-white font-bold py-2.5 rounded-xl text-sm">
-                    💬 Consultar por WhatsApp
-                  </a>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-gray-500">👥 Pasajeros</span>
+                  <span className="font-semibold">{viaje.cantPasajeros || 1}</span>
                 </div>
-              )
-            })}
+                {viaje.nroVoucher && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">🎫 Nro. voucher</span>
+                    <span className="font-semibold font-mono">{viaje.nroVoucher}</span>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={imprimirVoucher}
+                className="w-full bg-[#00AEEF] text-white font-bold py-3 rounded-xl hover:bg-[#0090C5] transition flex items-center justify-center gap-2"
+              >
+                🎫 Descargar / Imprimir voucher
+              </button>
+            </div>
+          ) : (
+            <div className="text-center py-6 text-gray-400">
+              <p className="text-4xl mb-3">🗺️</p>
+              <p className="text-sm">Aún no tenés un viaje asignado.</p>
+              <a
+                href="https://wa.me/542804321400"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block mt-3 bg-[#25D366] text-white text-sm font-bold px-5 py-2 rounded-xl"
+              >
+                💬 Consultanos por WhatsApp
+              </a>
+            </div>
+          )}
+        </div>
+
+        {/* Sección 3 — Mi itinerario */}
+        {viaje?.itinerario && (
+          <div className="bg-white rounded-2xl shadow-sm border p-5">
+            <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+              <span className="text-xl">📋</span> Mi itinerario
+            </h2>
+            {viaje.itinerario.startsWith('http') ? (
+              <a
+                href={viaje.itinerario}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 bg-blue-50 rounded-xl p-4 text-[#00AEEF] font-semibold hover:bg-blue-100 transition"
+              >
+                <span className="text-2xl">📄</span>
+                <span>Ver itinerario completo ↗</span>
+              </a>
+            ) : (
+              <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                {viaje.itinerario}
+              </div>
+            )}
           </div>
         )}
+
+        {/* Sección 4 — Mis puntos */}
+        <div className="bg-white rounded-2xl shadow-sm border p-5">
+          <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <span className="text-xl">⭐</span> Mis puntos
+          </h2>
+          <div className="flex items-center gap-4">
+            <div className="bg-yellow-50 rounded-2xl px-6 py-4 text-center flex-1">
+              <p className="text-4xl font-black text-yellow-500">{puntos}</p>
+              <p className="text-xs text-gray-500 mt-1">puntos acumulados</p>
+            </div>
+            <p className="text-sm text-gray-500 flex-1">
+              Acumulás puntos con cada viaje. ¡Canjeálos por descuentos en tu próxima aventura!
+            </p>
+          </div>
+        </div>
+
       </div>
     </div>
   )
