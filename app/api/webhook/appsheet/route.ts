@@ -32,11 +32,10 @@ export async function POST(req: NextRequest) {
     promesas.push(alertaCuposBajos(titulo, fecha, cupos))
   }
 
-  // 2. Nueva salida destacada — email masivo a toda la base
+  // 2. Nueva salida — email a todos los usuarios registrados
   const esNuevo = evento === 'ADD'
-  const destacado = ['Si', 'Yes', 'TRUE', 'true', '1'].includes(fila['Destacado'] || '')
-  if (esNuevo && destacado && titulo) {
-    promesas.push(emailNuevaSalidaDestacada(fila, syncResult.paquetes))
+  if (esNuevo && titulo) {
+    promesas.push(emailNuevaSalida(fila, syncResult.paquetes))
   }
 
   await Promise.allSettled(promesas)
@@ -79,17 +78,18 @@ async function alertaCuposBajos(titulo: string, fecha: string, cupos: number) {
   })
 }
 
-async function emailNuevaSalidaDestacada(fila: any, paquetes: any[]) {
+async function emailNuevaSalida(fila: any, paquetes: any[]) {
   const titulo = fila['Título'] || fila['TÃ­tulo'] || fila['Titulo'] || ''
   const paquete = paquetes.find((p: any) => p.titulo === titulo) || mapearSalida(fila, 0)
 
-  const reservas = await redis.get<any[]>('reservas') || []
-  const vistos = new Set<string>()
-  const destinatarios = reservas.filter((r: any) => {
-    if (vistos.has(r.email)) return false
-    vistos.add(r.email)
-    return true
-  })
+  // Obtener todos los usuarios registrados
+  const keys = await redis.keys('perfil:*')
+  if (!keys.length) return
+  const perfiles = await Promise.all(keys.map(async k => {
+    const p = await redis.get<any>(k)
+    return { email: k.replace('perfil:', ''), nombre: p?.nombre || p?.name || '', ...p }
+  }))
+  const destinatarios = perfiles.filter(p => p.email)
   if (destinatarios.length === 0) return
 
   const resend = new Resend(process.env.RESEND_API_KEY)
