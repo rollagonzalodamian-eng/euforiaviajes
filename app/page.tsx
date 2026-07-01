@@ -118,6 +118,9 @@ export default function Home() {
         </div>
       </section>
 
+      {/* RESEÑAS — justo después del hero para generar confianza */}
+      {!busqueda && <Resenas />}
+
       <div className="max-w-6xl mx-auto px-4 py-10">
 
         {/* DESTINOS POPULARES */}
@@ -349,9 +352,6 @@ export default function Home() {
           </div>
         )}
       </div>
-
-      {/* RESEÑAS */}
-      {!busqueda && <Resenas />}
 
       {/* CTA FINAL */}
       {!busqueda && (
