@@ -1266,9 +1266,20 @@ export default function AdminPage() {
                       </div>
                     )}
 
+                    {/* Cotización ya enviada */}
+                    {pedidoSeleccionado.textoCotizacionEnviada && (
+                      <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                        <p className="text-xs font-bold text-green-600 mb-2 uppercase tracking-wide">✅ Última cotización enviada</p>
+                        <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{pedidoSeleccionado.textoCotizacionEnviada}</p>
+                        {pedidoSeleccionado.cotizacionEnviada && (
+                          <p className="text-xs text-gray-400 mt-2">Enviada el {new Date(pedidoSeleccionado.cotizacionEnviada).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
+                        )}
+                      </div>
+                    )}
+
                     {/* Área para escribir la cotización */}
                     <div>
-                      <p className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">✏️ Tu cotización</p>
+                      <p className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">{pedidoSeleccionado.textoCotizacionEnviada ? '✏️ Escribir nueva cotización' : '✏️ Tu cotización'}</p>
                       <textarea
                         value={textoCotizacion}
                         onChange={e => setTextoCotizacion(e.target.value)}
@@ -1295,9 +1306,10 @@ export default function AdminPage() {
                             })
                             const data = await res.json()
                             if (res.ok) {
-                              setReservas(prev => prev.map((x: any) => x.id === pedidoSeleccionado.id ? { ...x, etapa: 2, cotizacionEnviada: new Date().toISOString() } : x))
+                              const ahora = new Date().toISOString()
+                              setReservas(prev => prev.map((x: any) => x.id === pedidoSeleccionado.id ? { ...x, etapa: 2, cotizacionEnviada: ahora, textoCotizacionEnviada: textoCotizacion } : x))
+                              setPedidoSeleccionado((prev: any) => ({ ...prev, etapa: 2, cotizacionEnviada: ahora, textoCotizacionEnviada: textoCotizacion }))
                               setMensaje('✅ Cotización enviada a ' + pedidoSeleccionado.email)
-                              setPedidoSeleccionado(null)
                               setTextoCotizacion('')
                             } else {
                               setMensaje('❌ Error: ' + (data.error || 'no se pudo enviar'))

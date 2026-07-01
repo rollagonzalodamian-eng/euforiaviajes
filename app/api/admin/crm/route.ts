@@ -73,8 +73,11 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  // Marcar como etapa 2
-  const updated = reservas.map((r: any) => r.id === id ? { ...r, etapa: 2, cotizacionEnviada: new Date().toISOString() } : r)
+  // Marcar como etapa 2 y guardar texto enviado
+  const updated = reservas.map((r: any) => r.id === id ? {
+    ...r, etapa: 2, cotizacionEnviada: new Date().toISOString(),
+    ...(textoCotizacion && { textoCotizacionEnviada: textoCotizacion })
+  } : r)
   await saveReservas(updated)
 
   return NextResponse.json({ ok: true })
