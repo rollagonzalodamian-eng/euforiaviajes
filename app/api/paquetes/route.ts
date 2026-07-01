@@ -120,28 +120,48 @@ export async function GET() {
   try {
     const sync = await redis.get<any[]>('paquetes_sync')
     if (sync && sync.length > 0) {
-      const [customFotos, customFotosT, fotosIds] = await Promise.all([
-        redis.get<Record<string, string>>('custom_fotos').catch(() => ({})),
-        redis.get<Record<string, string>>('custom_fotos_t').catch(() => ({})),
-        redis.smembers('fotos_custom_ids').catch(() => []),
+      const [urlIds, base64Ids] = await Promise.all([
+        redis.smembers('foto_url_ids').catch(() => [] as string[]),
+        redis.smembers('fotos_custom_ids').catch(() => [] as string[]),
       ])
-      const fotosBulk: Record<string, string> = customFotos || {}
-      const fotosBulkT: Record<string, string> = customFotosT || {}
 
-      let fotosBase64: Record<string, string> = {}
-      if (fotosIds && fotosIds.length > 0) {
-        const keys = (fotosIds as string[]).map((id: string) => `foto:${id}`)
+      // Cargar fotos URL individuales
+      const fotosUrl: Record<string, string> = {}
+      if (urlIds.length > 0) {
+        const keys = (urlIds as string[]).map(id => `foto_url:${id}`)
         const vals = await redis.mget<string[]>(...keys).catch(() => [])
-        ;(fotosIds as string[]).forEach((id: string, i: number) => {
-          if (vals[i]) fotosBase64[id] = vals[i]
+        ;(urlIds as string[]).forEach((id, i) => { if (vals[i]) fotosUrl[id] = vals[i] })
+      }
+
+      // Cargar fotos base64 individuales
+      const fotosBase64: Record<string, string> = {}
+      if (base64Ids.length > 0) {
+        const keys = (base64Ids as string[]).map(id => `foto:${id}`)
+        const vals = await redis.mget<string[]>(...keys).catch(() => [])
+        ;(base64Ids as string[]).forEach((id, i) => { if (vals[i]) fotosBase64[id] = vals[i] })
+      }
+
+      // Pre-cargar fallbacks por título para paquetes sin foto por ID
+      const sinFotoIds = sync.filter(p => !fotosBase64[p.id] && !fotosUrl[p.id])
+      const fotosUrlT: Record<string, string> = {}
+      const fotosTitT: Record<string, string> = {}
+      if (sinFotoIds.length > 0) {
+        const tNorms = sinFotoIds.map(p => normalizarTitulo(p.titulo || ''))
+        const urlTKeys = tNorms.map(t => `foto_url_t:${t}`)
+        const titTKeys = tNorms.map(t => `foto_t:${t}`)
+        const [urlTVals, titTVals] = await Promise.all([
+          redis.mget<string[]>(...urlTKeys).catch(() => []),
+          redis.mget<string[]>(...titTKeys).catch(() => []),
+        ])
+        tNorms.forEach((t, i) => {
+          if (urlTVals[i]) fotosUrlT[t] = urlTVals[i]
+          if (titTVals[i]) fotosTitT[t] = titTVals[i]
         })
       }
 
       const merged = sync.map(p => {
-        // Prioridad: por ID → por título (fallback si el Row ID cambió) → foto por destino
         const tNorm = normalizarTitulo(p.titulo || '')
-        const fotoCustom = fotosBase64[p.id] || fotosBulk[p.id]
-          || fotosBulkT[tNorm]
+        const fotoCustom = fotosBase64[p.id] || fotosUrl[p.id] || fotosUrlT[tNorm] || fotosTitT[tNorm]
         const fotoFinal = fotoCustom || getFotoFallback(p)
         return { ...p, foto: fotoFinal }
       })
