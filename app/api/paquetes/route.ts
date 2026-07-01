@@ -112,18 +112,22 @@ function getFotoFallback(p: any): string {
   return 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop'
 }
 
+function normalizarTitulo(titulo: string): string {
+  return titulo.toLowerCase().trim().replace(/[^a-z0-9áéíóúñ]/g, '_').slice(0, 80)
+}
+
 export async function GET() {
   try {
     const sync = await redis.get<any[]>('paquetes_sync')
     if (sync && sync.length > 0) {
-      // Leer fotos custom: URLs normales (objeto bulk) + base64 individuales
-      const [customFotos, fotosIds] = await Promise.all([
+      const [customFotos, customFotosT, fotosIds] = await Promise.all([
         redis.get<Record<string, string>>('custom_fotos').catch(() => ({})),
+        redis.get<Record<string, string>>('custom_fotos_t').catch(() => ({})),
         redis.smembers('fotos_custom_ids').catch(() => []),
       ])
       const fotosBulk: Record<string, string> = customFotos || {}
+      const fotosBulkT: Record<string, string> = customFotosT || {}
 
-      // Leer claves individuales (foto:{id}) para los que tienen base64
       let fotosBase64: Record<string, string> = {}
       if (fotosIds && fotosIds.length > 0) {
         const keys = (fotosIds as string[]).map((id: string) => `foto:${id}`)
@@ -134,8 +138,10 @@ export async function GET() {
       }
 
       const merged = sync.map(p => {
-        // Prioridad: foto subida manualmente → fallback por destino (ignoramos fotos scrapeadas de WooCommerce)
+        // Prioridad: por ID → por título (fallback si el Row ID cambió) → foto por destino
+        const tNorm = normalizarTitulo(p.titulo || '')
         const fotoCustom = fotosBase64[p.id] || fotosBulk[p.id]
+          || fotosBulkT[tNorm]
         const fotoFinal = fotoCustom || getFotoFallback(p)
         return { ...p, foto: fotoFinal }
       })

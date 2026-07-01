@@ -28,21 +28,38 @@ export async function GET(req: NextRequest) {
   }
 }
 
+function normalizarTitulo(titulo: string): string {
+  return titulo.toLowerCase().trim().replace(/[^a-z0-9áéíóúñ]/g, '_').slice(0, 80)
+}
+
+async function getTituloPaquete(id: string): Promise<string> {
+  try {
+    const paquetes = await redis.get<any[]>('paquetes_sync')
+    return paquetes?.find(p => p.id === id)?.titulo || ''
+  } catch { return '' }
+}
+
 export async function POST(req: NextRequest) {
   const { pass, id, url } = await req.json()
   if (pass !== process.env.ADMIN_PASS) return NextResponse.json({ ok: false }, { status: 401 })
   if (!id || !url) return NextResponse.json({ ok: false, error: 'Faltan datos' }, { status: 400 })
   try {
+    const titulo = await getTituloPaquete(id)
     if (url.startsWith('data:')) {
-      // Base64: guardar como clave individual para no inflar el objeto bulk
       await redis.set(`foto:${id}`, url)
-      // Registrar el ID en el índice para que /api/paquetes lo encuentre
       await redis.sadd('fotos_custom_ids', id)
+      // También guardar por título como respaldo
+      if (titulo) await redis.set(`foto_t:${normalizarTitulo(titulo)}`, url)
     } else {
-      // URL normal: guardar en el objeto bulk (pequeño)
       const fotos = await redis.get<Record<string, string>>('custom_fotos') || {}
       fotos[id] = url
       await redis.set('custom_fotos', fotos)
+      // También guardar por título como respaldo
+      if (titulo) {
+        const fotosT = await redis.get<Record<string, string>>('custom_fotos_t') || {}
+        fotosT[normalizarTitulo(titulo)] = url
+        await redis.set('custom_fotos_t', fotosT)
+      }
     }
     return NextResponse.json({ ok: true })
   } catch (e: any) {
