@@ -417,6 +417,9 @@ export default function AdminPage() {
           const confirmadas = reservas.filter(r => r.estado === 'confirmada')
           const enGestion = reservas.filter(r => !r.estado || r.estado === 'en_gestion')
           const canceladas = reservas.filter(r => r.estado === 'cancelada')
+          const cotizacionesEnviadas = reservas.filter((r: any) => r.cotizacionEnviada)
+          const sinResponder = reservas.filter((r: any) => !r.cotizacionEnviada && r.etapa === 1)
+          const tasaRespuesta = reservas.length > 0 ? Math.round(cotizacionesEnviadas.length / reservas.length * 100) : 0
 
           // Top paquetes por cantidad de reservas
           const conteo: Record<string, number> = {}
@@ -454,10 +457,10 @@ export default function AdminPage() {
               {/* KPIs principales */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
                 {[
-                  { label: 'Total reservas', value: reservas.length, color: 'text-[#00AEEF]', bg: 'bg-blue-50', icon: '📋' },
+                  { label: 'Total consultas', value: reservas.length, color: 'text-[#00AEEF]', bg: 'bg-blue-50', icon: '📋' },
                   { label: 'Esta semana', value: reservasSemana.length, color: 'text-green-600', bg: 'bg-green-50', icon: '📈' },
-                  { label: 'Hoy', value: reservasHoy.length, color: 'text-orange-500', bg: 'bg-orange-50', icon: '🕐' },
-                  { label: 'Paquetes activos', value: paquetes.length, color: 'text-purple-600', bg: 'bg-purple-50', icon: '✈️' },
+                  { label: 'Sin responder', value: sinResponder.length, color: sinResponder.length > 0 ? 'text-red-500' : 'text-gray-400', bg: sinResponder.length > 0 ? 'bg-red-50' : 'bg-gray-50', icon: '⚠️' },
+                  { label: 'Cotizaciones enviadas', value: cotizacionesEnviadas.length, color: 'text-purple-600', bg: 'bg-purple-50', icon: '✉️' },
                 ].map(k => (
                   <div key={k.label} className={`${k.bg} rounded-2xl p-4 border border-white shadow-sm`}>
                     <div className="text-2xl mb-1">{k.icon}</div>
@@ -466,6 +469,21 @@ export default function AdminPage() {
                   </div>
                 ))}
               </div>
+              {/* Tasa de respuesta */}
+              {reservas.length > 0 && (
+                <div className="bg-white rounded-2xl border shadow-sm p-4 mb-5 flex items-center gap-4">
+                  <div className="text-3xl">{tasaRespuesta >= 70 ? '🟢' : tasaRespuesta >= 40 ? '🟡' : '🔴'}</div>
+                  <div className="flex-1">
+                    <p className="font-bold text-gray-700 text-sm">Tasa de respuesta: <span className={tasaRespuesta >= 70 ? 'text-green-600' : tasaRespuesta >= 40 ? 'text-yellow-600' : 'text-red-500'}>{tasaRespuesta}%</span></p>
+                    <p className="text-xs text-gray-400 mt-0.5">{cotizacionesEnviadas.length} cotizaciones enviadas de {reservas.length} consultas · {sinResponder.length} pendientes sin responder</p>
+                  </div>
+                  {sinResponder.length > 0 && (
+                    <button onClick={() => setTab('reservas')} className="text-xs bg-red-50 text-red-600 font-bold px-3 py-1.5 rounded-lg shrink-0">
+                      Ver pendientes →
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Estados de reservas */}
               <div className="bg-white rounded-2xl shadow-sm border p-5 mb-5">
@@ -1050,16 +1068,24 @@ export default function AdminPage() {
                 {reservas.length > 0 && (
                   <button
                     onClick={() => {
-                      const headers = ['Nombre', 'Email', 'Teléfono', 'Pasajeros', 'Fecha deseada', 'Paquete', 'Etapa', 'Fecha consulta']
+                      const etapaNombre: Record<number,string> = {1:'Nueva consulta',2:'Cotización enviada',3:'Confirmado',4:'No confirmó',5:'Lead frío'}
+                      const headers = ['Nombre','Email','Teléfono','Pasajeros','Fecha deseada','Paquete','Etapa','Cotización enviada','Fecha consulta','Lo que pidió']
                       const rows = reservas.map((r: any) => [
-                        r.nombre, r.email, r.telefono, r.cantPasajeros,
-                        r.fechaDeseada || '', r.paqueteTitulo, r.etapa || 1,
+                        `"${r.nombre || ''}"`,
+                        r.email || '',
+                        r.telefono || '',
+                        r.cantPasajeros || '',
+                        r.fechaDeseada || '',
+                        `"${r.paqueteTitulo || ''}"`,
+                        etapaNombre[r.etapa || 1] || 'Nueva consulta',
+                        r.cotizacionEnviada ? new Date(r.cotizacionEnviada).toLocaleDateString('es-AR') : 'No',
                         r.fecha ? new Date(r.fecha).toLocaleDateString('es-AR') : '',
+                        `"${(r.mensaje || '').replace(/"/g,"'")}"`,
                       ])
                       const csv = [headers, ...rows].map(r => r.join(',')).join('\n')
                       const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
                       const url = URL.createObjectURL(blob)
-                      const a = document.createElement('a'); a.href = url; a.download = 'crm-euforia.csv'; a.click()
+                      const a = document.createElement('a'); a.href = url; a.download = `crm-euforia-${new Date().toISOString().slice(0,10)}.csv`; a.click()
                     }}
                     className="bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg">
                     📥 Exportar
