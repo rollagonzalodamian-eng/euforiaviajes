@@ -1272,7 +1272,10 @@ export default function AdminPage() {
                         <p className="text-xs font-bold text-green-600 mb-2 uppercase tracking-wide">✅ Última cotización enviada</p>
                         <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{pedidoSeleccionado.textoCotizacionEnviada}</p>
                         {pedidoSeleccionado.cotizacionEnviada && (
-                          <p className="text-xs text-gray-400 mt-2">Enviada el {new Date(pedidoSeleccionado.cotizacionEnviada).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
+                          <div className="flex items-center justify-between mt-2">
+                            <p className="text-xs text-gray-400">Enviada el {new Date(pedidoSeleccionado.cotizacionEnviada).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
+                            <a href="https://resend.com/emails" target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 underline hover:text-gray-600">ver en Resend ↗</a>
+                          </div>
                         )}
                       </div>
                     )}
