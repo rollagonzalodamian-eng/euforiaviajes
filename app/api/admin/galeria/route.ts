@@ -86,12 +86,28 @@ function getFotosFallback(paquete: any): string[] {
 
 export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get('id')
+  const pass = req.nextUrl.searchParams.get('pass')
+  const listar = req.nextUrl.searchParams.get('listar')
+
+  // Diagnóstico: listar todas las claves galeria
+  if (listar && pass === process.env.ADMIN_PASS) {
+    try {
+      const keys = await redis.keys('galeria:*')
+      const result: Record<string, number> = {}
+      for (const k of keys) {
+        const fotos = await redis.get<string[]>(k)
+        result[k] = fotos?.length || 0
+      }
+      return NextResponse.json({ total: keys.length, claves: result })
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message })
+    }
+  }
+
   if (!id) return NextResponse.json([])
   try {
     const fotos = await redis.get<string[]>(`galeria:${id}`)
     if (fotos && fotos.length > 0) return NextResponse.json(fotos)
-
-    // Sin fotos del admin → no mostrar nada
     return NextResponse.json([])
   } catch {
     return NextResponse.json([])
