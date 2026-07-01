@@ -1291,8 +1291,14 @@ export default function AdminPage() {
 
                     {/* Botones */}
                     <div className="space-y-2">
+                      {pedidoSeleccionado.cotizacionEnviada && !textoCotizacion.trim() && (
+                        <div className="bg-green-50 border border-green-300 rounded-xl px-4 py-3 text-center">
+                          <p className="text-green-700 font-bold text-sm">✅ Cotización ya enviada</p>
+                          <p className="text-green-600 text-xs mt-1">Si querés reenviar, escribí un nuevo texto arriba</p>
+                        </div>
+                      )}
                       <button
-                        disabled={enviandoCotizacion}
+                        disabled={enviandoCotizacion || (!!pedidoSeleccionado.cotizacionEnviada && !textoCotizacion.trim())}
                         onClick={async () => {
                           if (!textoCotizacion.trim()) { alert('Escribí la cotización antes de enviar'); return }
                           if (enviandoCotizacion) return
@@ -1319,7 +1325,11 @@ export default function AdminPage() {
                           }
                           setTimeout(() => setMensaje(''), 6000)
                         }}
-                        className={`w-full text-white text-sm font-bold py-3 rounded-xl transition ${enviandoCotizacion ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#00AEEF]'}`}>
+                        className={`w-full text-white text-sm font-bold py-3 rounded-xl transition ${
+                          enviandoCotizacion ? 'bg-gray-400 cursor-not-allowed' :
+                          (pedidoSeleccionado.cotizacionEnviada && !textoCotizacion.trim()) ? 'bg-gray-300 cursor-not-allowed text-gray-500' :
+                          'bg-[#00AEEF] hover:bg-[#0090C5]'
+                        }`}>
                         ✉️ Enviar cotización por email a {pedidoSeleccionado.email}
                       </button>
                       <a href={`https://wa.me/549${pedidoSeleccionado.telefono?.replace(/\D/g,'')}?text=${encodeURIComponent(textoCotizacion || `Hola ${pedidoSeleccionado.nombre}! Te contactamos por tu consulta de ${pedidoSeleccionado.paqueteTitulo}.`)}`}
