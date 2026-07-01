@@ -27,6 +27,7 @@ export default function Home() {
   const [precioMin, setPrecioMin] = useState(0)
   const [moneda, setMoneda] = useState<'USD' | 'ARS'>('USD')
   const [tc, setTc] = useState(1400)
+  const [fechaMin, setFechaMin] = useState('')
 
   useEffect(() => {
     fetch('/api/paquetes').then(r => r.json()).then(data => {
@@ -39,6 +40,19 @@ export default function Home() {
 
   const CATEGORIAS = ['Todos', ...Array.from(new Set(paquetes.map(p => p.categoria).filter(Boolean))).sort()]
 
+  function normFecha(f: string): string {
+    if (!f) return ''
+    if (/^\d{4}-\d{2}-\d{2}/.test(f)) return f.slice(0, 10)
+    if (f.includes('/')) {
+      const p = f.split('/')
+      const a = parseInt(p[0]), b = parseInt(p[1]), c = parseInt(p[2])
+      if (a > 31) return `${a}-${String(b).padStart(2,'0')}-${String(c).padStart(2,'0')}`
+      if (c > 31) return `${c}-${String(b).padStart(2,'0')}-${String(a).padStart(2,'0')}`
+      return `${c}-${String(b).padStart(2,'0')}-${String(a).padStart(2,'0')}`
+    }
+    return ''
+  }
+
   const filtrados = useMemo(() => {
     let r = paquetes.filter(p => {
       const texto = busqueda.toLowerCase()
@@ -50,7 +64,8 @@ export default function Home() {
       const trans = transporte === 'Todos' || p.transporte === transporte
       const precioUSD = parseFloat(p.precioUSD) || parseFloat(p.precioARS) / tc || 0
       const cumplePrecio = precioMin === 0 || precioUSD >= precioMin
-      return coincide && cat && trans && cumplePrecio
+      const cumpleFecha = !fechaMin || normFecha(p.fecha) >= fechaMin
+      return coincide && cat && trans && cumplePrecio && cumpleFecha
     })
     if (ordenPrecio) {
       r = [...r].sort((a, b) => {
@@ -64,7 +79,7 @@ export default function Home() {
       })
     }
     return r
-  }, [busqueda, categoria, transporte, ordenPrecio, precioMin, paquetes, tc])
+  }, [busqueda, categoria, transporte, ordenPrecio, precioMin, fechaMin, paquetes, tc])
 
   const destacados = paquetes.filter(p => p.destacado || p.enPromocion).slice(0, 6)
 
@@ -248,6 +263,18 @@ export default function Home() {
               </button>
             </div>
           </div>
+          <div className="flex items-center gap-2 mt-2">
+            <label className="text-xs text-gray-500 font-semibold whitespace-nowrap">📅 Salida desde:</label>
+            <input
+              type="date"
+              value={fechaMin}
+              onChange={e => setFechaMin(e.target.value)}
+              className="px-3 py-1.5 rounded-full text-xs font-bold border border-gray-200 bg-white text-gray-600 outline-none focus:border-[#00AEEF]"
+            />
+            {fechaMin && (
+              <button onClick={() => setFechaMin('')} className="text-xs text-gray-400 hover:text-red-400">✕ Limpiar</button>
+            )}
+          </div>
           <p className="text-xs text-gray-400 mt-2">{filtrados.length} paquete{filtrados.length !== 1 ? 's' : ''} encontrado{filtrados.length !== 1 ? 's' : ''}</p>
         </section>
 
@@ -345,7 +372,7 @@ export default function Home() {
           <div className="text-center py-20 text-gray-400">
             <p className="text-4xl mb-3">🔍</p>
             <p className="font-semibold">No encontramos paquetes para esa búsqueda.</p>
-            <button onClick={() => { setBusqueda(''); setCategoria('Todos'); setTransporte('Todos'); setPrecioMin(0) }}
+            <button onClick={() => { setBusqueda(''); setCategoria('Todos'); setTransporte('Todos'); setPrecioMin(0); setFechaMin('') }}
               className="mt-4 underline text-sm" style={{ color: '#00AEEF' }}>
               Limpiar filtros
             </button>

@@ -23,7 +23,7 @@ export async function PATCH(req: NextRequest) {
 
 // POST: enviar cotización manual a una prereserva
 export async function POST(req: NextRequest) {
-  const { pass, id, textoCotizacion } = await req.json()
+  const { pass, id, textoCotizacion, asunto } = await req.json()
   if (pass !== process.env.ADMIN_PASS) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const reservas = await getReservas()
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     await resend.emails.send({
       from: 'Euforia Viajes <noreply@viajaconeuforia.com>',
       to: reserva.email,
-      subject: `✈️ Tu cotización: ${reserva.paqueteTitulo}`,
+      subject: asunto || `✈️ Tu cotización — Euforia Viajes`,
       html: `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
           <div style="background:linear-gradient(135deg,#00AEEF,#0078B4);padding:24px;border-radius:12px 12px 0 0;text-align:center">

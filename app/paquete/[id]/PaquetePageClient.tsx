@@ -1,5 +1,6 @@
 'use client'
-import { use, useState, useEffect, useRef } from 'react'
+import { use, useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { getPaquete, emojiDestino } from '@/lib/paquetes'
 import type { Paquete } from '@/lib/types'
 import Link from 'next/link'
@@ -100,6 +101,9 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
   const [p, setP] = useState<Paquete | undefined>(getPaquete(id))
   const [tc, setTc] = useState(1400)
   const router = useRouter()
+  const { data: session } = useSession()
+  const [esFavorito, setEsFavorito] = useState(false)
+  const [guardandoFav, setGuardandoFav] = useState(false)
   const [form, setForm] = useState({ nombre: '', email: '', telefono: '', cantPasajeros: '1', fechaDeseada: '', mensaje: '' })
   const [estado, setEstado] = useState<'idle' | 'enviando' | 'ok' | 'error'>('idle')
   const [pagoEstado, setPagoEstado] = useState<'idle' | 'cargando'>('idle')
@@ -107,6 +111,27 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
   const [descuentoUSD, setDescuentoUSD] = useState(0)
   const [cuponEstado, setCuponEstado] = useState<'idle' | 'ok' | 'error'>('idle')
   const [cuponMsg, setCuponMsg] = useState('')
+
+  useEffect(() => {
+    if (session?.user) {
+      fetch('/api/favoritos').then(r => r.json()).then(data => {
+        if (data.favoritos?.includes(id)) setEsFavorito(true)
+      }).catch(() => {})
+    }
+  }, [session, id])
+
+  const toggleFavorito = async () => {
+    if (!session?.user) { router.push('/login'); return }
+    setGuardandoFav(true)
+    const res = await fetch('/api/favoritos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paqueteId: id }),
+    })
+    const data = await res.json()
+    setEsFavorito(data.agregado)
+    setGuardandoFav(false)
+  }
 
   useEffect(() => {
     fetch('/api/paquetes').then(r => r.json()).then((data: Paquete[]) => {
@@ -151,7 +176,7 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...form, paqueteId: p.id, paqueteTitulo: p.titulo, precioUSD: p.precioUSD, precioARS: p.precioARS, fecha: p.fecha }),
     })
-    if (res.ok) router.push('/confirmacion')
+    if (res.ok) router.push(`/confirmacion?paquete=${encodeURIComponent(p.titulo)}&nombre=${encodeURIComponent(form.nombre)}`)
     else setEstado('error')
   }
 
@@ -179,19 +204,35 @@ export default function PaquetePage({ params }: { params: Promise<{ id: string }
     else alert('Mercado Pago no está activado aún. Contactanos por WhatsApp.')
   }
 
-  const compartirWhatsApp = () => {
-    const url = `https://app.viajaconeuforia.com/paquete/${p.id}`
-    const texto = `¡Mirá este paquete de Euforia Viajes! ${p.titulo}${p.precioUSD ? ` - Desde USD ${parseFloat(p.precioUSD).toLocaleString()}` : ''} 👉 ${url}`
-    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank')
-  }
+  const urlPaquete = `https://app.viajaconeuforia.com/paquete/${p.id}`
+  const textoPaquete = `¡Mirá este paquete de Euforia Viajes! ${p.titulo}${p.precioUSD ? ` - Desde USD ${parseFloat(p.precioUSD).toLocaleString()}` : ''} 👉 ${urlPaquete}`
 
   return (
     <div className="min-h-screen bg-[#f5f9fd]">
-      <div className="max-w-4xl mx-auto px-4 pt-4 flex items-center justify-between">
+      <div className="max-w-4xl mx-auto px-4 pt-4 flex items-center justify-between gap-2 flex-wrap">
         <button onClick={() => router.back()} className="text-[#00AEEF] font-semibold text-sm hover:underline">← Volver</button>
-        <button onClick={compartirWhatsApp} className="flex items-center gap-2 bg-green-500 text-white text-xs font-bold px-3 py-2 rounded-lg">
-          📤 Compartir
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleFavorito}
+            disabled={guardandoFav}
+            title={session?.user ? (esFavorito ? 'Quitar de favoritos' : 'Guardar en favoritos') : 'Iniciá sesión para guardar'}
+            className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg border transition"
+            style={esFavorito
+              ? { backgroundColor: '#fee2e2', color: '#ef4444', borderColor: '#fca5a5' }
+              : { backgroundColor: 'white', color: '#6b7280', borderColor: '#e5e7eb' }}>
+            {esFavorito ? '❤️' : '🤍'} {esFavorito ? 'Guardado' : 'Guardar'}
+          </button>
+          <button
+            onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(textoPaquete)}`, '_blank')}
+            className="flex items-center gap-1.5 bg-green-500 text-white text-xs font-bold px-3 py-2 rounded-lg">
+            📤 WhatsApp
+          </button>
+          <a
+            href={`mailto:?subject=${encodeURIComponent(`¡Mirá este viaje! ${p.titulo}`)}&body=${encodeURIComponent(textoPaquete)}`}
+            className="flex items-center gap-1.5 bg-[#00AEEF] text-white text-xs font-bold px-3 py-2 rounded-lg">
+            📧 Email
+          </a>
+        </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-8 grid md:grid-cols-3 gap-6">

@@ -89,12 +89,16 @@ async function alertaCuposBajos(titulo: string, fecha: string, cupos: number) {
 }
 
 async function emailNuevaSalida(fila: any, paquetes: any[]) {
-  const rowId = fila['Row ID'] || fila['_RowNumber'] || fila['RowId'] || ''
-  const titulo = fila['Título'] || fila['TÃ­tulo'] || fila['Titulo'] || fila['titulo'] || ''
-  // Buscar por Row ID primero, luego por título, luego construir desde fila
+  // AppSheet envía _THISROW con todos los campos — buscar por cualquier clave que tenga el ID
+  const rowId = fila['Row ID'] || fila['RowId'] || fila['row_id'] || fila['id'] || ''
+  // Buscar por ID, o por cualquier campo que parezca título
+  const tituloFila = Object.values(fila).find((v: any) =>
+    typeof v === 'string' && v.length > 3 && v.length < 100 &&
+    paquetes.some((p: any) => p.titulo === v || p.titulo === fixEncoding(v))
+  ) as string || ''
   const paquete = (rowId ? paquetes.find((p: any) => p.id === rowId) : null)
-    || (titulo ? paquetes.find((p: any) => p.titulo === titulo) : null)
-    || mapearSalida(fila, 0)
+    || (tituloFila ? paquetes.find((p: any) => p.titulo === tituloFila || p.titulo === fixEncoding(tituloFila)) : null)
+    || paquetes[paquetes.length - 1]  // AppSheet devuelve filas en orden de creación, el último es el más nuevo
   if (!paquete?.titulo) return
 
   // Obtener todos los usuarios registrados
@@ -128,8 +132,8 @@ async function emailNuevaSalida(fila: any, paquetes: any[]) {
             <div style="background:white;padding:32px 24px;border-radius:0 0 16px 16px">
               <h2 style="color:#333;margin-top:0">¡Hola ${r.nombre}! Tenemos una nueva salida para vos 👋</h2>
               <div style="background:#f0fbff;border-radius:12px;padding:20px;margin:16px 0;border:1px solid #c8eaf8">
-                ${paquete.foto ? `<img src="${paquete.foto}" alt="${titulo}" style="width:100%;border-radius:8px;margin-bottom:14px;object-fit:cover;max-height:220px"/>` : ''}
-                <h3 style="color:#00AEEF;margin:0 0 10px">${titulo}</h3>
+                ${paquete.foto ? `<img src="${paquete.foto}" alt="${paquete.titulo}" style="width:100%;border-radius:8px;margin-bottom:14px;object-fit:cover;max-height:220px"/>` : ''}
+                <h3 style="color:#00AEEF;margin:0 0 10px">${paquete.titulo}</h3>
                 ${paquete.fecha ? `<p style="margin:4px 0;font-size:13px;color:#555">📅 Salida: <strong>${paquete.fecha}</strong></p>` : ''}
                 ${paquete.noches ? `<p style="margin:4px 0;font-size:13px;color:#555">🌙 ${paquete.noches} noches</p>` : ''}
                 ${paquete.origen ? `<p style="margin:4px 0;font-size:13px;color:#555">📍 Desde ${paquete.origen}</p>` : ''}
