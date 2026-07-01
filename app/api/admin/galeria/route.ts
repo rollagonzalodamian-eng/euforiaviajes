@@ -84,6 +84,17 @@ function getFotosFallback(paquete: any): string[] {
   ]
 }
 
+function normalizarTitulo(titulo: string): string {
+  return titulo.toLowerCase().trim().replace(/[^a-z0-9áéíóúñ]/g, '_').slice(0, 80)
+}
+
+async function getPaqueteTitulo(id: string): Promise<string> {
+  try {
+    const paquetes = await redis.get<any[]>('paquetes_sync')
+    return paquetes?.find(p => p.id === id)?.titulo || ''
+  } catch { return '' }
+}
+
 export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get('id')
   const pass = req.nextUrl.searchParams.get('pass')
@@ -106,8 +117,16 @@ export async function GET(req: NextRequest) {
 
   if (!id) return NextResponse.json([])
   try {
-    const fotos = await redis.get<string[]>(`galeria:${id}`)
-    if (fotos && fotos.length > 0) return NextResponse.json(fotos)
+    // Primero buscar por ID
+    const fotosPorId = await redis.get<string[]>(`galeria:${id}`)
+    if (fotosPorId && fotosPorId.length > 0) return NextResponse.json(fotosPorId)
+
+    // Fallback: buscar por título normalizado (sobrevive cambios de Row ID)
+    const titulo = await getPaqueteTitulo(id)
+    if (titulo) {
+      const fotosPorTitulo = await redis.get<string[]>(`galeria_t:${normalizarTitulo(titulo)}`)
+      if (fotosPorTitulo && fotosPorTitulo.length > 0) return NextResponse.json(fotosPorTitulo)
+    }
     return NextResponse.json([])
   } catch {
     return NextResponse.json([])
@@ -118,7 +137,13 @@ export async function POST(req: NextRequest) {
   const { pass, id, fotos } = await req.json()
   if (pass !== process.env.ADMIN_PASS) return NextResponse.json({ ok: false }, { status: 401 })
   try {
+    // Guardar por ID
     await redis.set(`galeria:${id}`, fotos)
+    // También guardar por título normalizado como backup
+    const titulo = await getPaqueteTitulo(id)
+    if (titulo) {
+      await redis.set(`galeria_t:${normalizarTitulo(titulo)}`, fotos)
+    }
     return NextResponse.json({ ok: true })
   } catch {
     return NextResponse.json({ ok: false }, { status: 500 })
